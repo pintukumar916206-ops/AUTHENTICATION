@@ -2,30 +2,30 @@
 @import url('https://fonts.googleapis.com/css2?family=Doto:wght@400;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
 
 :root {
-  --bg-black: #f7f7f4;
-  --bg-surface: #ffffff;
+  --bg-black: #050505;
+  --bg-surface: #0f0f0f;
   --nothing-red: #ff0031;
   --primary: var(--nothing-red);
-  --text-white: #080808;
-  --text-grey: #5f6368;
-  --border-white: rgba(8, 8, 8, 0.14);
-  --border-active: #080808;
+  --text-white: #ffffff;
+  --text-grey: #a0a0a0;
+  --border-white: rgba(255, 255, 255, 0.08);
+  --border-active: #ffffff;
   --panel-border: var(--border-white);
-  --panel-bg: rgba(255, 255, 255, 0.92);
+  --panel-bg: rgba(15, 15, 15, 0.92);
   --accent-muted: var(--text-grey);
   --accent: var(--text-white);
-  --success: #008f5f;
-  --warning: #c87300;
-  --error: #d9002c;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
   --panel-blur: 18px;
   --font-dot: 'Doto', sans-serif;
   --font-main: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --sidebar-w: 260px;
-  --radius-lg: 8px;
-  --radius-md: 6px;
-  --shadow-card: 0 18px 50px rgba(8, 8, 8, 0.08);
-  --shadow-hover: 0 22px 70px rgba(8, 8, 8, 0.14);
+  --radius-lg: 32px;
+  --radius-md: 12px;
+  --shadow-card: 0 18px 50px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 22px 70px rgba(0, 0, 0, 0.8);
 }
 
 * {
@@ -91,7 +91,7 @@ body::after {
 .main-stage {
   overflow-y: auto;
   padding: 40px 60px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(247, 247, 244, 0.88));
+  background: transparent;
 }
 
 .sidebar {
