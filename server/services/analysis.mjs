@@ -2,10 +2,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
 import { buildFeatures } from "./featureBuilder.mjs";
 import {
-  computeRiskScore,
-  getVerdict,
+  calculateForensicTrust,
   getTrustScore,
-  generateProof,
 } from "./scoring.mjs";
 
 let genAI;
@@ -87,9 +85,9 @@ RESPOND WITH THIS EXACT JSON STRUCTURE (no markdown, no extra text):
     return validated;
   } catch (err) {
     console.error("[AI-VERIFIER] Fallback triggered:", err.message);
-    const verdict = getVerdict(computeRiskScore(features));
+    const forensic = calculateForensicTrust(features);
     return {
-      verdict,
+      verdict: forensic.verdict,
       confidence: features.dataConfidence / 100,
       reasons: [
         "AI analysis unavailable. Verdict based on heuristic scoring engine.",
@@ -110,14 +108,11 @@ export async function runForensicPipeline(product) {
 
   const features = buildFeatures(product);
 
-  const riskScore = computeRiskScore(features);
-  const confidence = features.dataConfidence || 50;
-  const heuristicVerdict = getVerdict(riskScore, confidence);
-  const trustScore = getTrustScore(riskScore, confidence);
-
-  const aiResult = await runAIVerifier(product, features, heuristicVerdict);
-  const finalVerdict = heuristicVerdict;
-  const anomalies = generateProof(features);
+  const forensic = calculateForensicTrust(features);
+  const aiResult = await runAIVerifier(product, features, forensic.verdict);
+  
+  const finalVerdict = forensic.verdict;
+  const anomalies = forensic.audit_trail;
 
   if (aiResult.market_average && aiResult.market_average > 0) {
     const deviation =
@@ -156,8 +151,8 @@ export async function runForensicPipeline(product) {
 
   return {
     verdict: finalVerdict,
-    score: trustScore,
-    confidence: confidence,
+    score: forensic.score,
+    confidence: forensic.confidence,
     summary: aiResult.summary,
     reasoning: aiResult.reasons,
     evidence: aiResult.evidence,
@@ -179,8 +174,8 @@ export async function runForensicPipeline(product) {
         DATA_DENSITY: confidence / 100,
       },
       ai_confidence: Math.round(aiResult.confidence * 100),
-      heuristic_score: riskScore,
-      data_confidence: confidence,
+      forensic_score: forensic.score,
+      data_confidence: forensic.confidence,
       category: features.category,
       recovery_method: product.sourcesUsed?.includes("JSONLD")
         ? "SELF_HEALED_JSONLD"

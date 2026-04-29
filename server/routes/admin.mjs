@@ -15,6 +15,20 @@ router.get("/stats", async (req, res) => {
   }
 });
 
+router.get("/health", async (req, res) => {
+  try {
+    // Import dynamically to avoid circular issues or ensure current values
+    const { SCRAPER_HEALTH } = await import("../services/scraper.mjs");
+    res.json({
+      uptime: process.uptime(),
+      scrapers: SCRAPER_HEALTH,
+      timestamp: new Date()
+    });
+  } catch {
+    res.status(500).json({ error: "SERVER_ERROR" });
+  }
+});
+
 router.get("/flagged", async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;

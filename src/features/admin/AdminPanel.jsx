@@ -122,12 +122,56 @@ const distributionData = [
   { range: '61-80%', count: 190 },
   { range: '81-100%', count: 300 },
 ];
+function HealthHUD({ data }) {
+  if (!data) return <SkeletonCard />;
+  const { scrapers, uptime } = data;
+  
+  return (
+    <div className="admin-health-hud" style={{ marginBottom: 32 }}>
+      <div className="bl-header" style={{ marginBottom: 16 }}>
+        <Activity size={14} /> <span>SYSTEM OPERATIONAL HEALTH</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        {Object.entries(scrapers).map(([id, stats]) => {
+          const total = stats.success + stats.fail;
+          const rate = total > 0 ? Math.round((stats.success / total) * 100) : 100;
+          return (
+            <div key={id} className="health-card" style={{ padding: 16, background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid var(--panel-border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--accent-muted)' }}>{id} ADAPTER</span>
+                <span style={{ fontSize: '0.7rem', color: rate > 80 ? 'var(--success)' : 'var(--error)' }}>{rate}% HEALTH</span>
+              </div>
+              <div style={{ height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${rate}%`, background: rate > 80 ? 'var(--success)' : 'var(--error)' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>
+                <span>S: {stats.success}</span>
+                <span>F: {stats.fail}</span>
+              </div>
+            </div>
+          );
+        })}
+        <div className="health-card" style={{ padding: 16, background: 'rgba(255,0,49,0.05)', borderRadius: 12, border: '1px solid rgba(255,0,49,0.2)' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--nothing-red)' }}>SYSTEM UPTIME</span>
+          <div style={{ fontSize: '1.2rem', fontWeight: 700, marginTop: 4, color: '#fff' }}>{Math.floor(uptime / 3600)}h {Math.floor((uptime % 3600) / 60)}m</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState("overview");
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["adminStats"],
     queryFn: () => api.get("/api/admin/stats"),
+  });
+
+  const { data: health, isLoading: healthLoading } = useQuery({
+    queryKey: ["adminHealth"],
+    queryFn: () => api.get("/api/admin/health"),
+    refetchInterval: 10000 // Refresh every 10s
   });
 
   const { data: flaggedData, isLoading: flaggedLoading } = useQuery({
@@ -143,18 +187,20 @@ export default function AdminPanel() {
   return (
     <div className="admin-page" style={{ padding: '40px 60px' }}>
       <PageHeader 
-        title={<><ShieldAlert size={28} style={{ display: "inline", marginRight: 12, color: "var(--error)", verticalAlign: 'bottom' }} />Admin Panel</>} 
-        subtitle="Platform moderation and forensic intelligence analytics"
+        title={<><ShieldAlert size={28} style={{ display: "inline", marginRight: 12, color: "var(--error)", verticalAlign: 'bottom' }} />Operational Command</>} 
+        subtitle="Platform forensic health and real-time moderation queue"
       />
 
       <Tabs>
         <TabList activeTab={activeTab} onChange={setActiveTab}>
           <TabTrigger value="overview">Overview</TabTrigger>
-          <TabTrigger value="flagged">Flagged Reports</TabTrigger>
-          <TabTrigger value="users">Users</TabTrigger>
-          <TabTrigger value="audit">Audit Trail</TabTrigger>
+          <TabTrigger value="flagged">Fraud Queue</TabTrigger>
+          <TabTrigger value="users">Access Mgmt</TabTrigger>
+          <TabTrigger value="audit">Forensic Logs</TabTrigger>
         </TabList>
         <TabContent value="overview" activeTab={activeTab}>
+          <HealthHUD data={health} />
+          
           {statsLoading ? (
             <div style={{ display: 'flex', gap: 16 }}>
               <SkeletonCard />
@@ -164,7 +210,7 @@ export default function AdminPanel() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 32 }}>
               <StatBox label="Total Scans" value={stats?.total || 0} icon={BarChart3} trend={12} />
               <StatBox label="Total Users" value={stats?.userCount || 0} icon={Users} trend={5} />
-              <StatBox label="Flagged Reports" value={stats?.flaggedCount || 0} icon={Flag} trend={-2} />
+              <StatBox label="In Queue" value={stats?.flaggedCount || 0} icon={Flag} trend={-2} />
               <StatBox label="Genuine" value={stats?.genuine || 0} icon={ShieldAlert} />
               <StatBox label="Fake Detected" value={stats?.fake || 0} icon={ShieldAlert} />
             </div>
@@ -189,7 +235,7 @@ export default function AdminPanel() {
             </Card>
 
             <Card>
-              <CardHeader title="Score Distribution" />
+              <CardHeader title="Confidence Distribution" />
               <CardBody style={{ height: 350 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={distributionData}>
@@ -214,17 +260,17 @@ export default function AdminPanel() {
         
         <TabContent value="audit" activeTab={activeTab}>
           <Card>
-            <CardHeader title="Recent Moderation Activity" />
+            <CardHeader title="Forensic Action History" />
             <CardBody>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {[1, 2, 3].map(i => (
+                {[1, 2, 3, 4, 5].map(i => (
                   <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, paddingBottom: 16, borderBottom: '1px solid var(--panel-border)' }}>
                     <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,61,113,0.1)', color: 'var(--error)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Activity size={16} />
                     </div>
                     <div>
-                      <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 500 }}>System Admin deleted flagged report #892{i}</p>
-                      <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--accent-muted)' }}>{i * 2} hours ago • Automated action based on threshold</p>
+                      <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 500 }}>Forensic Scraper Adapter {i % 2 === 0 ? 'Amazon' : 'Generic'} Recovery Triggered</p>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--accent-muted)' }}>{i * 15} minutes ago • Automated self-healing via JSON-LD fallback</p>
                     </div>
                   </div>
                 ))}

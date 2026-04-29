@@ -111,23 +111,23 @@ export default function ForensicReport({ data, onReset }) {
 
       <div className="anomaly-stage">
         <div className="bl-header">
-          <ShieldAlert size={13} className="txt-fake" /> <span>RISK ANOMALIES ({risk_signals?.length || 0})</span>
+          <ShieldAlert size={13} className="txt-fake" /> <span>FORENSIC DEDUCTIONS ({risk_signals?.length || 0})</span>
         </div>
         <div className="anomaly-grid">
           {risk_signals && risk_signals.length > 0 ? (
             risk_signals.map((sig, i) => (
-              <div key={i} className={`anomaly-card ${sig.severity?.toLowerCase()}`}>
+              <div key={i} className={`anomaly-card ${sig.pts > 25 ? 'critical' : 'high'}`}>
                 <div className="a-header">
+                  <span className="a-pts">-{sig.pts}pts</span>
                   <span className="a-type">{sig.label}</span>
-                  <span className="a-severity">{sig.severity}</span>
                 </div>
-                <p className="a-detail">{sig.detail}</p>
+                <p className="a-detail">{sig.description}</p>
               </div>
             ))
           ) : (
             <div className="anomaly-card empty">
               <ShieldCheck size={16} />
-              <span>No critical anomalies detected in price, seller, or review signals.</span>
+              <span>Zero Deductions. The listing meets all deterministic integrity benchmarks.</span>
             </div>
           )}
         </div>

@@ -164,6 +164,32 @@ function addReviewSignals(data, anomalies) {
   return 0.2;
 }
 
+function addDomainSignals(data, anomalies) {
+  const hostname = data.hostname || "";
+  // In a real app, you'd use a WHOIS API here.
+  // We'll simulate risk based on non-standard TLDs or suspicious patterns.
+  if (/\.(icu|top|xyz|biz|loan|date|click)$/.test(hostname)) {
+    anomalies.push({
+      type: "FRESH_DOMAIN",
+      detail: `Storefront is hosted on a high-risk TLD (${hostname.split('.').pop()})`
+    });
+    return 0.75;
+  }
+  return 0.15;
+}
+
+function addMetadataSignals(data, anomalies) {
+  let risk = 0.2;
+  if (!data.description || data.description.length < 50) {
+    risk += 0.3;
+    anomalies.push({
+      type: "METADATA_INCOMPLETE",
+      detail: "Insufficient product documentation or description"
+    });
+  }
+  return risk;
+}
+
 export function buildFeatures(input = {}) {
   const data = {
     ...input,
@@ -198,6 +224,8 @@ export function buildFeatures(input = {}) {
     priceRisk: clamp(priceRisk),
     sellerRisk: clamp(addSellerSignals(data, anomalies)),
     reviewRisk: clamp(addReviewSignals(data, anomalies)),
+    domainRisk: clamp(addDomainSignals(data, anomalies)),
+    metadataRisk: clamp(addMetadataSignals(data, anomalies)),
     discountValue: discount,
     anomalies,
     dataConfidence: buildConfidence(data, discount),
