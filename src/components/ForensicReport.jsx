@@ -65,14 +65,23 @@ export default function ForensicReport({ data, onReset }) {
       </div>
 
       <div className="forensic-scoring-sheet report-card">
-        <div className="bl-header">
-          <Activity size={13} /> <span>SCORING AUDIT TRAIL</span>
+        <div className="bl-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Activity size={13} /> <span>SCORING AUDIT TRAIL</span>
+          </div>
+          {confidence < 50 && (
+            <span style={{ color: 'var(--warning)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <AlertTriangle size={12} /> INSUFFICIENT DATA (PROVISIONAL SCORE)
+            </span>
+          )}
         </div>
         <div className="audit-sheet-body">
           <div className="audit-row base-row">
             <span className="audit-label">Forensic Base Score</span>
             <span className="audit-pts">+100</span>
           </div>
+          
+          {/* Deductions */}
           {risk_signals && risk_signals.length > 0 ? (
             risk_signals.map((sig, i) => (
               <div key={i} className="audit-row deduction-row">
@@ -85,10 +94,28 @@ export default function ForensicReport({ data, onReset }) {
             ))
           ) : (
             <div className="audit-row empty-row">
-              <span className="audit-label">No deductive signals detected</span>
-              <span className="audit-pts">0</span>
+              <span className="audit-label" style={{ color: 'var(--text-grey)' }}>No deductive signals detected</span>
+              <span className="audit-pts" style={{ color: 'var(--text-grey)' }}>0</span>
             </div>
           )}
+
+          {/* Mitigations */}
+          {data.mitigations && data.mitigations.length > 0 && (
+            <>
+              <div className="audit-divider" style={{ borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.05)' }}></div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--accent-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>False Positive Mitigations Applied</div>
+              {data.mitigations.map((mit, i) => (
+                <div key={`mit-${i}`} className="audit-row base-row">
+                  <div className="audit-info">
+                    <span className="audit-label" style={{ color: 'var(--success)' }}>{mit.label}</span>
+                    <span className="audit-desc">{mit.description}</span>
+                  </div>
+                  <span className="audit-pts">+{mit.pts}</span>
+                </div>
+              ))}
+            </>
+          )}
+
           <div className="audit-divider"></div>
           <div className="audit-row final-row">
             <span className="audit-label">Final Forensic Trust</span>

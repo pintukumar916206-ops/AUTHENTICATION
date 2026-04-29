@@ -1,0 +1,209 @@
+/* Executive PDF Print Styles */
+.executive-pdf-container {
+  display: none; /* Hidden on screen, shown only during export */
+  background: white;
+  color: black;
+  font-family: "Inter", "Helvetica", sans-serif;
+  width: 210mm; /* A4 width */
+}
+
+/* When html2canvas captures it, we force it to display block */
+.pdf-exporting .executive-pdf-container {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -9999;
+}
+
+.pdf-page {
+  width: 210mm;
+  min-height: 297mm; /* A4 height */
+  padding: 20mm;
+  box-sizing: border-box;
+  background: white;
+  position: relative;
+  page-break-after: always;
+}
+
+.pdf-header {
+  border-bottom: 2px solid #000;
+  padding-bottom: 10mm;
+  margin-bottom: 10mm;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.pdf-brand h1 {
+  margin: 0;
+  font-size: 24pt;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.pdf-subtitle {
+  font-size: 10pt;
+  font-family: monospace;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.pdf-meta {
+  text-align: right;
+  font-size: 9pt;
+  color: #444;
+}
+
+.pdf-target-info {
+  margin-bottom: 10mm;
+}
+
+.pdf-target-info h3 {
+  font-size: 10pt;
+  color: #666;
+  margin: 0 0 5px 0;
+}
+
+.pdf-target-title {
+  font-size: 16pt;
+  font-weight: 700;
+  margin: 0;
+}
+
+.pdf-target-url {
+  font-size: 10pt;
+  color: #0066cc;
+  margin: 5px 0 0 0;
+  word-break: break-all;
+}
+
+.pdf-verdict-banner {
+  background: #f8f9fa;
+  border-left: 6px solid #000;
+  padding: 10mm;
+  margin-bottom: 15mm;
+}
+
+.pdf-verdict-banner h2 {
+  margin: 0 0 10mm 0;
+  font-size: 20pt;
+}
+
+.pdf-scores {
+  display: flex;
+  gap: 20mm;
+}
+
+.pdf-score-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.pdf-score-val {
+  font-size: 32pt;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.pdf-score-lbl {
+  font-size: 9pt;
+  color: #666;
+  text-transform: uppercase;
+  margin-top: 5px;
+  font-family: monospace;
+}
+
+.pdf-warning {
+  margin-top: 10mm;
+  padding: 5mm;
+  background: #fff3cd;
+  color: #856404;
+  font-size: 10pt;
+  border: 1px solid #ffeeba;
+}
+
+.pdf-section {
+  margin-bottom: 15mm;
+}
+
+.pdf-section h3 {
+  font-size: 14pt;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 3px;
+  margin-bottom: 5px;
+}
+
+.pdf-reasoning-text {
+  font-size: 11pt;
+  line-height: 1.6;
+}
+
+.pdf-bullet-list {
+  padding-left: 20px;
+  font-size: 11pt;
+  line-height: 1.6;
+}
+
+.pdf-header-small {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9pt;
+  color: #888;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5mm;
+  margin-bottom: 10mm;
+}
+
+.pdf-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 5mm;
+  font-size: 10pt;
+}
+
+.pdf-table th, .pdf-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.pdf-table th {
+  background: #f0f0f0;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 9pt;
+}
+
+.pdf-pts-neg {
+  color: #d32f2f;
+  font-weight: 700;
+  font-family: monospace;
+  font-size: 12pt;
+}
+
+.pdf-pts-pos {
+  color: #2e7d32;
+  font-weight: 700;
+  font-family: monospace;
+  font-size: 12pt;
+}
+
+.pdf-final-row td {
+  background: #f8f9fa;
+  font-size: 14pt;
+  border-top: 2px solid #000;
+}
+
+.pdf-footer {
+  position: absolute;
+  bottom: 20mm;
+  left: 20mm;
+  right: 20mm;
+  border-top: 1px solid #ccc;
+  padding-top: 5mm;
+  font-size: 8pt;
+  color: #888;
+  text-align: center;
+}

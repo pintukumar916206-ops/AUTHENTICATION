@@ -1,0 +1,131 @@
+import React from 'react';
+import { ShieldCheck, ShieldAlert, AlertTriangle, Fingerprint, Activity, Clock } from 'lucide-react';
+import '../styles/pdf.css';
+
+export default function ExecutivePDFTemplate({ data }) {
+  const {
+    _id,
+    verdict,
+    score,
+    confidence,
+    reasoning = [],
+    risk_signals = [],
+    mitigations = [],
+    product,
+    timestamp
+  } = data;
+
+  const verdictText = verdict === "GENUINE" ? "VERIFIED GENUINE" :
+                      verdict === "FAKE" ? "CONFIRMED FRAUDULENT" :
+                      "HIGH-RISK / SUSPICIOUS";
+
+  const verdictColor = verdict === "GENUINE" ? "#10b981" :
+                       verdict === "FAKE" ? "#ef4444" : "#f59e0b";
+
+  return (
+    <div className="executive-pdf-container" id="executive-pdf-template">
+      {/* PAGE 1: EXECUTIVE SUMMARY */}
+      <div className="pdf-page">
+        <header className="pdf-header">
+          <div className="pdf-brand">
+            <h1>AUTHENTISCAN</h1>
+            <span className="pdf-subtitle">FORENSIC INTELLIGENCE DIVISION</span>
+          </div>
+          <div className="pdf-meta">
+            <div className="meta-item"><strong>SCAN ID:</strong> {_id?.slice(-12).toUpperCase()}</div>
+            <div className="meta-item"><strong>DATE:</strong> {new Date(timestamp).toUTCString()}</div>
+          </div>
+        </header>
+
+        <div className="pdf-target-info">
+          <h3>TARGET ASSET</h3>
+          <p className="pdf-target-title">{product?.title || "Unknown Asset"}</p>
+          <p className="pdf-target-url">{product?.url}</p>
+        </div>
+
+        <div className="pdf-verdict-banner" style={{ borderLeftColor: verdictColor }}>
+          <h2>OFFICIAL VERDICT: <span style={{ color: verdictColor }}>{verdictText}</span></h2>
+          <div className="pdf-scores">
+            <div className="pdf-score-box">
+              <span className="pdf-score-val">{score}/100</span>
+              <span className="pdf-score-lbl">FORENSIC TRUST SCORE</span>
+            </div>
+            <div className="pdf-score-box">
+              <span className="pdf-score-val">{confidence}%</span>
+              <span className="pdf-score-lbl">DATA CONFIDENCE</span>
+            </div>
+          </div>
+          {confidence < 50 && (
+            <div className="pdf-warning">
+              ⚠ INSUFFICIENT DATA: This is a provisional score due to missing target telemetry.
+            </div>
+          )}
+        </div>
+
+        <div className="pdf-section">
+          <h3>EXECUTIVE SUMMARY</h3>
+          <p className="pdf-reasoning-text">
+            Based on automated deep-packet analysis and behavioral heuristics, this listing presents a trust score of <strong>{score}</strong>. 
+            {verdict === "GENUINE" 
+              ? " No critical fraud indicators were detected. The merchant exhibits standard operational behavior." 
+              : " Critical anomalies were detected that strongly correlate with known fraudulent patterns."}
+          </p>
+          <ul className="pdf-bullet-list">
+            {reasoning.map((r, i) => <li key={i}>{r}</li>)}
+          </ul>
+        </div>
+      </div>
+
+      {/* PAGE 2: FORENSIC AUDIT TRAIL */}
+      <div className="pdf-page">
+        <header className="pdf-header-small">
+          <span>AUTHENTISCAN FORENSIC REPORT</span>
+          <span>SCAN ID: {_id?.slice(-12).toUpperCase()}</span>
+        </header>
+
+        <div className="pdf-section">
+          <h3>MATHEMATICAL AUDIT TRAIL</h3>
+          <table className="pdf-table">
+            <thead>
+              <tr>
+                <th>Forensic Signal</th>
+                <th>Justification</th>
+                <th>Impact</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="pdf-base-row">
+                <td>Base Integrity Score</td>
+                <td>Starting metric for all targets</td>
+                <td className="pdf-pts-pos">+100</td>
+              </tr>
+              {risk_signals.map((sig, i) => (
+                <tr key={i} className="pdf-deduction-row">
+                  <td><strong>{sig.label}</strong></td>
+                  <td>{sig.description}</td>
+                  <td className="pdf-pts-neg">-{sig.pts}</td>
+                </tr>
+              ))}
+              {mitigations && mitigations.length > 0 && mitigations.map((mit, i) => (
+                <tr key={`mit-${i}`} className="pdf-mitigation-row">
+                  <td><strong>{mit.label}</strong></td>
+                  <td>{mit.description}</td>
+                  <td className="pdf-pts-pos">+{mit.pts}</td>
+                </tr>
+              ))}
+              <tr className="pdf-final-row">
+                <td colSpan="2" style={{ textAlign: "right" }}><strong>FINAL CALCULATED SCORE:</strong></td>
+                <td><strong>{score}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="pdf-footer">
+          <p>This document was automatically generated by AuthentiScan v2 Operations Engine.</p>
+          <p>Confidential and Proprietary. Do not distribute without authorization.</p>
+        </div>
+      </div>
+    </div>
+  );
+}

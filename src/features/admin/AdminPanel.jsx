@@ -51,20 +51,20 @@ function FlaggedTable({ data }) {
       cell: ({ row }) => (
         <div style={{ display: 'flex', gap: 8 }}>
           <Button variant="outline" size="sm" onClick={() => resolve.mutate({ id: row.original._id, resolution: "GENUINE" })}>
-            Approve
+            Approve Asset
           </Button>
           <Button variant="danger" size="sm" onClick={() => resolve.mutate({ id: row.original._id, resolution: "FAKE" })}>
-            Blacklist
+            Quarantine
           </Button>
-          <Button variant="ghost" size="sm" title="Escalate to Senior Forensic Team">
-            <Activity size={14} /> Escalate
+          <Button variant="ghost" size="sm" title="Escalate to Senior Forensic Team" onClick={() => addToast("Escalated to Tier-2 Review", "info")}>
+            <Activity size={14} /> Tier-2 Escalation
           </Button>
         </div>
       )
     }
   ];
 
-  if (!data?.length) return <EmptyState title="No active incidents" message="Investigation queue is empty." />;
+  if (!data?.length) return <EmptyState title="Queue Empty" message="No active incidents require manual review." />;
 
   return <Table data={data} columns={columns} pagination />;
 }
@@ -196,16 +196,16 @@ export default function AdminPanel() {
   return (
     <div className="admin-page" style={{ padding: '40px 60px' }}>
       <PageHeader 
-        title={<><ShieldAlert size={28} style={{ display: "inline", marginRight: 12, color: "var(--error)", verticalAlign: 'bottom' }} />Operational Command</>} 
-        subtitle="Platform forensic health and real-time moderation queue"
+        title={<><ShieldAlert size={28} style={{ display: "inline", marginRight: 12, color: "var(--error)", verticalAlign: 'bottom' }} />Fraud Operations Console</>} 
+        subtitle="Manage active threats, quarantine assets, and monitor platform telemetry."
       />
 
       <Tabs>
         <TabList activeTab={activeTab} onChange={setActiveTab}>
-          <TabTrigger value="overview">Overview</TabTrigger>
-          <TabTrigger value="flagged">Fraud Queue</TabTrigger>
-          <TabTrigger value="users">Access Mgmt</TabTrigger>
-          <TabTrigger value="audit">Forensic Logs</TabTrigger>
+          <TabTrigger value="overview">Ops Dashboard</TabTrigger>
+          <TabTrigger value="flagged">Investigation Queue</TabTrigger>
+          <TabTrigger value="users">Access Control</TabTrigger>
+          <TabTrigger value="audit">System Telemetry</TabTrigger>
         </TabList>
         <TabContent value="overview" activeTab={activeTab}>
           <HealthHUD data={health} />

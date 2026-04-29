@@ -10,6 +10,8 @@ import { exportReportPDF } from "../../utils/pdf";
 import { Download, Share2, GitCompare, ArrowLeft, Bot } from "lucide-react";
 import AICopilot from "./AICopilot";
 
+import ExecutivePDFTemplate from "../../components/ExecutivePDFTemplate";
+
 export default function ReportPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -20,10 +22,13 @@ export default function ReportPage() {
 
   const handlePDF = useCallback(async () => {
     try {
-      addToast("Generating PDF...", "info");
-      await exportReportPDF("forensic-report-print", `authentiscan-${id}.pdf`);
-      addToast("PDF downloaded!", "success");
+      addToast("Generating Executive PDF...", "info");
+      document.body.classList.add("pdf-exporting");
+      await exportReportPDF("executive-pdf-template", `authentiscan-executive-${id}.pdf`);
+      document.body.classList.remove("pdf-exporting");
+      addToast("Executive Report Downloaded", "success");
     } catch {
+      document.body.classList.remove("pdf-exporting");
       addToast("PDF export failed", "error");
     }
   }, [id, addToast]);
@@ -32,12 +37,12 @@ export default function ReportPage() {
     shareMutation.mutate(id, {
       onSuccess: ({ shareUrl }) => {
         navigator.clipboard.writeText(shareUrl).then(() => {
-          addToast("Share link copied to clipboard!", "success");
+          addToast("Secure Share Link generated & copied!", "success");
         }).catch(() => {
           addToast(`Share link: ${shareUrl}`, "info", 8000);
         });
       },
-      onError: () => addToast("Failed to generate share link", "error"),
+      onError: () => addToast("Failed to generate secure link", "error"),
     });
   }, [id, shareMutation, addToast]);
 
@@ -72,7 +77,7 @@ export default function ReportPage() {
             onClick={() => navigate(`/compare?a=${id}`)}
           >
             <GitCompare size={14} />
-            Compare
+            Forensic Compare
           </Button>
           <Button
             id="ai-copilot-btn"
@@ -92,7 +97,7 @@ export default function ReportPage() {
             loading={shareMutation.isPending}
           >
             <Share2 size={14} />
-            Share
+            Secure Share
           </Button>
           <Button
             id="pdf-export-btn"
@@ -101,17 +106,20 @@ export default function ReportPage() {
             onClick={handlePDF}
           >
             <Download size={14} />
-            Export PDF
+            Export Executive PDF
           </Button>
         </div>
       </div>
 
-      <div id="forensic-report-print">
+      <div id="forensic-report-screen">
         <ForensicReport
           data={report}
           onReset={() => navigate("/analyze")}
         />
       </div>
+
+      {/* Hidden PDF Template for High-Fidelity Print */}
+      <ExecutivePDFTemplate data={report} />
 
       <AICopilot reportId={id} isOpen={aiOpen} onClose={() => setAiOpen(false)} />
     </div>

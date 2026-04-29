@@ -76,11 +76,25 @@ export function calculateForensicTrust(features = {}) {
   // Calculate Confidence based on verified data sources
   const confidence = Math.round((confidenceDataPoints.size / 4) * 100);
 
+  // False Positive Mitigation Logic
+  const mitigations = [];
+  if (features.priceRisk > 0.4 && features.sellerRisk < 0.2) {
+    // If price is suspicious but seller is highly verified, mitigate the penalty slightly.
+    const recovery = 10;
+    score += recovery;
+    mitigations.push({
+      label: "Verified Merchant Boost",
+      description: "Price deduction softened due to strong historical seller reputation.",
+      pts: recovery
+    });
+  }
+
   return {
-    score: Math.max(0, score),
+    score: Math.min(100, Math.max(0, score)),
     confidence: Math.min(100, confidence),
     audit_trail: deductions,
-    verdict: getVerdict(score)
+    mitigations: mitigations,
+    verdict: getVerdict(Math.min(100, Math.max(0, score)))
   };
 }
 

@@ -75,25 +75,34 @@ function SidePanel({ data, winner, side }) {
 
 function DeltaAnalysis({ result }) {
   const { a, b, winner, scoreGap } = result;
+  
   if (winner === "tie") return (
     <div className="compare-delta-banner tie">
       <div className="delta-icon"><Minus size={24} /></div>
       <div className="delta-content">
-        <h3>Forensic Deadlock Detected</h3>
-        <p>Both listings present identical risk profiles (Score: {a.score}). Recommended: Perform deep manual audit of seller metadata.</p>
+        <h3>Forensic Deadlock: Identical Risk Profiles Detected</h3>
+        <p>Both assets present a Trust Score of {a.score}. We recommend treating both targets as high-risk until manual verification of seller metadata can be performed.</p>
       </div>
     </div>
   );
 
   const winningData = winner === "a" ? a : b;
   const losingData = winner === "a" ? b : a;
+  
+  // Determine strongest negative factor for the losing side
+  const losingWorstSignal = losingData.risk_signals && losingData.risk_signals.length > 0 
+    ? losingData.risk_signals.reduce((max, obj) => (max.pts > obj.pts) ? max : obj).label 
+    : "Unknown vulnerabilities";
 
   return (
     <div className={`compare-delta-banner ${winner}`}>
       <div className="delta-icon"><ShieldCheck size={24} /></div>
       <div className="delta-content">
-        <h3>{winningData.hostname} is {scoreGap}pts more trustworthy</h3>
-        <p>Primary advantage: {winningData.score > losingData.score ? "Stronger seller reputation and price integrity." : "Standardized market documentation."}</p>
+        <h3>{winningData.hostname || "Target A"} exhibits {scoreGap}pts less risk exposure</h3>
+        <p>
+          <strong>Primary Advantage:</strong> {winningData.score > losingData.score ? "Stronger seller reputation and pricing integrity. " : "Standardized market documentation. "}
+          Conversely, the competing asset is heavily penalized due to <strong>{losingWorstSignal}</strong>.
+        </p>
       </div>
     </div>
   );
@@ -112,6 +121,9 @@ function ComparisonTable({ a, b }) {
       <div className="bl-header" style={{ marginBottom: 20 }}>
         <Activity size={13} /> <span>HEAD-TO-HEAD TECHNICAL AUDIT</span>
       </div>
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-grey)', marginBottom: '16px' }}>
+        A direct comparison of forensic metadata. Note that confidence levels dictate the reliability of the Trust Score.
+      </p>
       <table className="compare-table">
         <thead>
           <tr>
@@ -235,12 +247,12 @@ export default function ComparePage() {
           
           <div className="compare-recommendation report-card">
             <div className="bl-header">
-              <Trophy size={13} /> <span>FINAL VERDICT</span>
+              <Trophy size={13} /> <span>OPERATIONAL RECOMMENDATION</span>
             </div>
             <p className="recommendation-text">
               {result.winner === "tie" 
-                ? "Both products carry equal risk. We advise against purchase until further seller verification is performed."
-                : `Based on automated forensic signals, ${result.winner === "a" ? result.a.hostname : result.b.hostname} is the statistically safer choice for this transaction.`}
+                ? "Both assets carry equal risk exposure. We strongly advise against engaging with either listing until further seller verification is performed."
+                : `Based on deterministic forensic signals, ${result.winner === "a" ? result.a.hostname || "Target A" : result.b.hostname || "Target B"} is the statistically safer choice. The losing listing displays critical anomalies that align with known fraudulent operations.`}
             </p>
           </div>
         </div>
