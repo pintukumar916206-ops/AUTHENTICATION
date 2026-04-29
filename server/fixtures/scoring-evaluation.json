@@ -1,0 +1,172 @@
+[
+  {
+    "id": "genuine-nothing-phone",
+    "label": "GENUINE",
+    "product": {
+      "title": "Nothing Phone 2a 8GB RAM 128GB Storage",
+      "price": 23999,
+      "originalPrice": 25999,
+      "discount": 8,
+      "sellerName": "Flipkart Retail",
+      "sellerRating": 4.6,
+      "rating": 4.4,
+      "reviewCount": 8342,
+      "description": "Official warranty smartphone listing",
+      "hostname": "flipkart.com",
+      "forensicConfidence": 0.95
+    }
+  },
+  {
+    "id": "genuine-amazon-shoe",
+    "label": "GENUINE",
+    "product": {
+      "title": "Nike running shoes for men",
+      "price": 5499,
+      "originalPrice": 6999,
+      "discount": 21,
+      "sellerName": "Amazon Retail",
+      "sellerRating": 4.5,
+      "rating": 4.3,
+      "reviewCount": 1284,
+      "description": "Brand authorized sports shoe listing",
+      "hostname": "amazon.in",
+      "forensicConfidence": 0.94
+    }
+  },
+  {
+    "id": "genuine-apple",
+    "label": "GENUINE",
+    "product": {
+      "title": "Apple iPhone 15 128GB",
+      "price": 68999,
+      "originalPrice": 79900,
+      "discount": 14,
+      "sellerName": "Official authorized reseller",
+      "sellerRating": 4.8,
+      "rating": 4.6,
+      "reviewCount": 4212,
+      "description": "GST invoice and manufacturer warranty included",
+      "hostname": "amazon.in",
+      "forensicConfidence": 0.96
+    }
+  },
+  {
+    "id": "suspicious-low-review",
+    "label": "SUSPICIOUS",
+    "product": {
+      "title": "Premium wireless earbuds pro",
+      "price": 1499,
+      "originalPrice": 4999,
+      "discount": 70,
+      "sellerName": "Mega Deals Store",
+      "sellerRating": 3.2,
+      "rating": 4.9,
+      "reviewCount": 11,
+      "description": "Limited offer earbuds",
+      "hostname": "deals.example.com",
+      "forensicConfidence": 0.83
+    }
+  },
+  {
+    "id": "suspicious-unverified-seller",
+    "label": "SUSPICIOUS",
+    "product": {
+      "title": "Samsung Galaxy watch",
+      "price": 8999,
+      "originalPrice": 24999,
+      "discount": 64,
+      "sellerName": "Fast Gadget Hub",
+      "sellerRating": 3.1,
+      "rating": 4.4,
+      "reviewCount": 78,
+      "description": "Imported smartwatch listing",
+      "hostname": "market.example.com",
+      "forensicConfidence": 0.86
+    }
+  },
+  {
+    "id": "suspicious-missing-reviews",
+    "label": "SUSPICIOUS",
+    "product": {
+      "title": "Designer leather jacket",
+      "price": 999,
+      "originalPrice": 2499,
+      "discount": 60,
+      "sellerName": "Fashion Orbit",
+      "sellerRating": 3.6,
+      "rating": 0,
+      "reviewCount": 0,
+      "description": "New arrival jacket",
+      "hostname": "shop.example.com",
+      "forensicConfidence": 0.8
+    }
+  },
+  {
+    "id": "fake-jordan",
+    "label": "FAKE",
+    "product": {
+      "title": "Nike Air Jordan limited edition sneakers",
+      "price": 399,
+      "originalPrice": 8999,
+      "discount": 96,
+      "sellerName": "Unknown reseller",
+      "sellerRating": 2.4,
+      "rating": 4.9,
+      "reviewCount": 8,
+      "description": "Limited launch import product",
+      "hostname": "deals.example.com",
+      "forensicConfidence": 0.9
+    }
+  },
+  {
+    "id": "fake-iphone",
+    "label": "FAKE",
+    "product": {
+      "title": "Apple iPhone 15 Pro Max new sealed",
+      "price": 5999,
+      "originalPrice": 149900,
+      "discount": 96,
+      "sellerName": "Flash Deal Seller",
+      "sellerRating": 2.1,
+      "rating": 4.8,
+      "reviewCount": 14,
+      "description": "No warranty exchange offer",
+      "hostname": "flash.example.com",
+      "forensicConfidence": 0.88
+    }
+  },
+  {
+    "id": "fake-watch",
+    "label": "FAKE",
+    "product": {
+      "title": "Luxury smart watch ultra clone",
+      "price": 299,
+      "originalPrice": 7999,
+      "discount": 96,
+      "sellerName": "",
+      "sellerRating": 0,
+      "rating": 4.9,
+      "reviewCount": 3,
+      "description": "Replica model",
+      "hostname": "unknown.example.com",
+      "forensicConfidence": 0.78
+    }
+  },
+  {
+    "id": "unverifiable-no-price",
+    "label": "UNVERIFIABLE",
+    "product": {
+      "title": "",
+      "price": 0,
+      "originalPrice": 0,
+      "discount": 0,
+      "sellerName": "",
+      "sellerRating": 0,
+      "rating": 0,
+      "reviewCount": 0,
+      "description": "",
+      "hostname": "blocked.example.com",
+      "forensicConfidence": 0.25
+    }
+  }
+]
