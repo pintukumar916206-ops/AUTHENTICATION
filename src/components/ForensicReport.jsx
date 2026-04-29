@@ -50,11 +50,50 @@ export default function ForensicReport({ data, onReset }) {
           <h1 className={`v-title txt-${verdictClass}`}>{verdictLabel}</h1>
           <p className="v-summary">{summary || "Automated audit complete. Review risk signals below."}</p>
         </div>
-        <div className="v-score-box">
-          <span className="sc-val">
-            {score}
-          </span>
-          <span className="sc-label">Trust Score</span>
+        <div className="v-score-stack">
+          <div className="v-score-box">
+            <span className="sc-val">{score}</span>
+            <span className="sc-label">Trust Score</span>
+          </div>
+          <div className="v-confidence-mini">
+            <div className="conf-bar-bg">
+              <div className="conf-bar-fill" style={{ width: `${confidence}%` }}></div>
+            </div>
+            <span>{confidence}% Confidence</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="forensic-scoring-sheet report-card">
+        <div className="bl-header">
+          <Activity size={13} /> <span>SCORING AUDIT TRAIL</span>
+        </div>
+        <div className="audit-sheet-body">
+          <div className="audit-row base-row">
+            <span className="audit-label">Forensic Base Score</span>
+            <span className="audit-pts">+100</span>
+          </div>
+          {risk_signals && risk_signals.length > 0 ? (
+            risk_signals.map((sig, i) => (
+              <div key={i} className="audit-row deduction-row">
+                <div className="audit-info">
+                  <span className="audit-label">{sig.label}</span>
+                  <span className="audit-desc">{sig.description}</span>
+                </div>
+                <span className="audit-pts">-{sig.pts}</span>
+              </div>
+            ))
+          ) : (
+            <div className="audit-row empty-row">
+              <span className="audit-label">No deductive signals detected</span>
+              <span className="audit-pts">0</span>
+            </div>
+          )}
+          <div className="audit-divider"></div>
+          <div className="audit-row final-row">
+            <span className="audit-label">Final Forensic Trust</span>
+            <span className="audit-pts">{score}</span>
+          </div>
         </div>
       </div>
 

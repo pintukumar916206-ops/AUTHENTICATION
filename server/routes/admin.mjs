@@ -83,4 +83,23 @@ router.patch("/users/:id/role", async (req, res) => {
   }
 });
 
+router.patch("/reports/:id/resolve", async (req, res) => {
+  const { resolution } = req.body;
+  if (!["GENUINE", "FAKE"].includes(resolution)) return res.status(400).json({ error: "VALIDATION_ERROR" });
+  
+  try {
+    const update = {
+      verdict: resolution,
+      moderated: true,
+      moderatedBy: req.user.id,
+      moderatedAt: new Date()
+    };
+    
+    await core.updateReport(req.params.id, update);
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "SERVER_ERROR" });
+  }
+});
+
 export default router;

@@ -5,7 +5,7 @@ import { api } from "../../services/api";
 import Button from "../../shared/Button";
 import Badge from "../../shared/Badge";
 import useUIStore from "../../store/uiStore";
-import { ShieldCheck, ShieldAlert, AlertTriangle, Trophy, Minus } from "lucide-react";
+import { ShieldCheck, ShieldAlert, AlertTriangle, Trophy, Minus, Activity } from "lucide-react";
 import "../../styles/dashboard.css";
 
 function ScoreBar({ score }) {
@@ -73,6 +73,67 @@ function SidePanel({ data, winner, side }) {
   );
 }
 
+function DeltaAnalysis({ result }) {
+  const { a, b, winner, scoreGap } = result;
+  if (winner === "tie") return (
+    <div className="compare-delta-banner tie">
+      <div className="delta-icon"><Minus size={24} /></div>
+      <div className="delta-content">
+        <h3>Forensic Deadlock Detected</h3>
+        <p>Both listings present identical risk profiles (Score: {a.score}). Recommended: Perform deep manual audit of seller metadata.</p>
+      </div>
+    </div>
+  );
+
+  const winningData = winner === "a" ? a : b;
+  const losingData = winner === "a" ? b : a;
+
+  return (
+    <div className={`compare-delta-banner ${winner}`}>
+      <div className="delta-icon"><ShieldCheck size={24} /></div>
+      <div className="delta-content">
+        <h3>{winningData.hostname} is {scoreGap}pts more trustworthy</h3>
+        <p>Primary advantage: {winningData.score > losingData.score ? "Stronger seller reputation and price integrity." : "Standardized market documentation."}</p>
+      </div>
+    </div>
+  );
+}
+
+function ComparisonTable({ a, b }) {
+  const rows = [
+    { label: "Trust Score", valA: `${a.score}%`, valB: `${b.score}%`, win: a.score > b.score ? "a" : (a.score < b.score ? "b" : "tie") },
+    { label: "Confidence", valA: `${a.confidence}%`, valB: `${b.confidence}%`, win: a.confidence > b.confidence ? "a" : (a.confidence < b.confidence ? "b" : "tie") },
+    { label: "Price", valA: `₹${a.price?.toLocaleString()}`, valB: `₹${b.price?.toLocaleString()}`, win: a.price > b.price ? "tie" : "tie" }, // Price win is subjective
+    { label: "Deductions", valA: a.risk_signals?.length || 0, valB: b.risk_signals?.length || 0, win: (a.risk_signals?.length || 0) < (b.risk_signals?.length || 0) ? "a" : "b" },
+  ];
+
+  return (
+    <div className="compare-table-wrap report-card">
+      <div className="bl-header" style={{ marginBottom: 20 }}>
+        <Activity size={13} /> <span>HEAD-TO-HEAD TECHNICAL AUDIT</span>
+      </div>
+      <table className="compare-table">
+        <thead>
+          <tr>
+            <th>Signal</th>
+            <th>{a.hostname}</th>
+            <th>{b.hostname}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i}>
+              <td className="row-label">{row.label}</td>
+              <td className={`row-val ${row.win === "a" ? "win" : ""}`}>{row.valA}</td>
+              <td className={`row-val ${row.win === "b" ? "win" : ""}`}>{row.valB}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function ComparePage() {
   const [searchParams] = useSearchParams();
   const preloadA = searchParams.get("a") || "";
@@ -98,10 +159,10 @@ export default function ComparePage() {
   };
 
   return (
-    <div className="compare-page">
+    <div className="compare-page" style={{ padding: '40px 60px' }}>
       <header className="compare-header">
-        <h1 className="compare-title">Compare Reports</h1>
-        <p className="compare-sub">Side-by-side forensic trust score comparison</p>
+        <h1 className="compare-title">Forensic Comparison</h1>
+        <p className="compare-sub">Deep-packet trust analysis across multiple storefronts</p>
       </header>
 
       <div className="compare-mode-tabs">
@@ -157,18 +218,30 @@ export default function ComparePage() {
           loading={compare.isPending}
           className="compare-submit"
         >
-          Run Comparison
+          Initiate Forensic Match
         </Button>
       </form>
 
       {result && (
-        <div className="compare-result">
-          <div className="compare-gap">
-            Score gap: <strong>{result.scoreGap} pts</strong>
-          </div>
+        <div className="compare-result anim-entry">
+          <DeltaAnalysis result={result} />
+          
           <div className="compare-panels">
             <SidePanel data={result.a} winner={result.winner} side="a" />
             <SidePanel data={result.b} winner={result.winner} side="b" />
+          </div>
+
+          <ComparisonTable a={result.a} b={result.b} />
+          
+          <div className="compare-recommendation report-card">
+            <div className="bl-header">
+              <Trophy size={13} /> <span>FINAL VERDICT</span>
+            </div>
+            <p className="recommendation-text">
+              {result.winner === "tie" 
+                ? "Both products carry equal risk. We advise against purchase until further seller verification is performed."
+                : `Based on automated forensic signals, ${result.winner === "a" ? result.a.hostname : result.b.hostname} is the statistically safer choice for this transaction.`}
+            </p>
           </div>
         </div>
       )}

@@ -881,6 +881,108 @@
 
 .batch-close {
   background: transparent;
+  border: none;/* Forensic Scoring Sheet */
+.forensic-scoring-sheet {
+  padding: 32px;
+  margin: 24px 0;
+  background: rgba(10, 10, 10, 0.4);
+  border: 1px solid var(--panel-border);
+}
+
+.audit-sheet-body {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.audit-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.audit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.audit-label {
+  font-family: var(--font-dot);
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  color: var(--text-white);
+}
+
+.audit-desc {
+  font-size: 0.75rem;
+  color: var(--text-grey);
+  max-width: 500px;
+}
+
+.audit-pts {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.deduction-row .audit-pts {
+  color: var(--error);
+}
+
+.base-row .audit-pts {
+  color: var(--success);
+}
+
+.audit-divider {
+  height: 1px;
+  background: var(--panel-border);
+  margin: 8px 0;
+}
+
+.final-row .audit-label {
+  font-size: 1.1rem;
+  color: var(--nothing-red);
+}
+
+.final-row .audit-pts {
+  font-size: 1.4rem;
+  color: var(--nothing-red);
+}
+
+.v-score-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.v-confidence-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  width: 120px;
+}
+
+.v-confidence-mini span {
+  font-size: 0.65rem;
+  font-family: var(--font-dot);
+  color: var(--text-grey);
+}
+
+.conf-bar-bg {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.batch-close {
+  background: transparent;
   border: none;
   color: var(--text-grey);
   font-size: 1.5rem;
@@ -892,4 +994,213 @@
 
 .batch-close:hover {
   color: #fff;
+}
+
+/* Elite Comparison Styles */
+.compare-delta-banner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 24px;
+  margin-bottom: 32px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.compare-delta-banner.a, .compare-delta-banner.b {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 0%, transparent 100%);
+}
+
+.compare-delta-banner.tie {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.delta-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--nothing-red);
+}
+
+.compare-delta-banner.a .delta-icon, .compare-delta-banner.b .delta-icon {
+  color: var(--success);
+}
+
+.delta-content h3 {
+  font-family: var(--font-dot);
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+
+.delta-content p {
+  font-size: 0.85rem;
+  color: var(--text-grey);
+}
+
+.compare-table-wrap {
+  margin-top: 32px;
+  padding: 32px;
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.compare-table th {
+  text-align: left;
+  padding: 12px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-grey);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.compare-table td {
+  padding: 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.row-label {
+  font-weight: 600;
+  color: var(--text-white);
+  font-size: 0.9rem;
+}
+
+.row-val {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--text-grey);
+}
+
+.row-val.win {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.compare-recommendation {
+  margin-top: 24px;
+  padding: 24px;
+  background: rgba(255, 0, 49, 0.03);
+  border: 1px dashed rgba(255, 0, 49, 0.2);
+}
+
+.recommendation-text {
+  margin-top: 12px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--text-white);
+}
+
+/* Forensic Scoring Sheet */
+.forensic-scoring-sheet {
+  padding: 32px;
+  margin: 24px 0;
+  background: rgba(10, 10, 10, 0.4);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+}
+
+.audit-sheet-body {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.audit-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.audit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.audit-label {
+  font-family: var(--font-dot);
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  color: var(--text-white);
+}
+
+.audit-desc {
+  font-size: 0.75rem;
+  color: var(--text-grey);
+  max-width: 500px;
+}
+
+.audit-pts {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.deduction-row .audit-pts {
+  color: var(--error);
+}
+
+.base-row .audit-pts {
+  color: var(--success);
+}
+
+.audit-divider {
+  height: 1px;
+  background: var(--panel-border);
+  margin: 8px 0;
+}
+
+.final-row .audit-label {
+  font-size: 1.1rem;
+  color: var(--nothing-red);
+}
+
+.final-row .audit-pts {
+  font-size: 1.4rem;
+  color: var(--nothing-red);
+}
+
+.v-score-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.v-confidence-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  width: 120px;
+}
+
+.v-confidence-mini span {
+  font-size: 0.65rem;
+  font-family: var(--font-dot);
+  color: var(--text-grey);
+}
+
+.conf-bar-bg {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.conf-bar-fill {
+  height: 100%;
+  background: var(--nothing-red);
+  box-shadow: 0 0 10px var(--nothing-red);
 }

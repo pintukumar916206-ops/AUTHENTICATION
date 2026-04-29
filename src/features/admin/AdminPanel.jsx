@@ -11,51 +11,60 @@ function FlaggedTable({ data }) {
   const { addToast } = useUIStore();
   const queryClient = useQueryClient();
 
-  const unflag = useMutation({
-    mutationFn: (id) => api.patch(`/api/admin/reports/${id}/flag`, {}),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["adminFlagged"] }); addToast("Report unflagged", "success"); },
-    onError: () => addToast("Failed to unflag", "error"),
-  });
-
-  const remove = useMutation({
-    mutationFn: (id) => api.delete(`/api/admin/reports/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["adminFlagged"] }); addToast("Report deleted", "success"); },
-    onError: () => addToast("Failed to delete", "error"),
+  const resolve = useMutation({
+    mutationFn: ({ id, resolution }) => api.patch(`/api/admin/reports/${id}/resolve`, { resolution }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["adminFlagged"] }); addToast("Report resolved", "success"); },
+    onError: () => addToast("Resolution failed", "error"),
   });
 
   const columns = [
     {
       accessorKey: 'product.title',
-      header: 'Product',
-      cell: info => <div className="admin-cell-title" style={{ maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{info.getValue() || "Untitled"}</div>
+      header: 'Incident Target',
+      cell: info => (
+        <div className="admin-cell-title">
+          <div style={{ fontWeight: 600, maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{info.getValue() || "Untitled Product"}</div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--accent-muted)', fontFamily: 'var(--font-mono)' }}>ID: {info.row.original._id.slice(-8).toUpperCase()}</div>
+        </div>
+      )
     },
     {
       accessorKey: 'verdict',
-      header: 'Verdict',
+      header: 'Auto Verdict',
       cell: info => <Badge verdict={info.getValue()} />
     },
     {
       accessorKey: 'score',
-      header: 'Score',
-      cell: info => `${info.getValue()}%`
+      header: 'Trust Score',
+      cell: info => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
+            <div style={{ height: '100%', width: `${info.getValue()}%`, background: info.getValue() > 70 ? 'var(--success)' : 'var(--error)' }} />
+          </div>
+          <span style={{ fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>{info.getValue()}%</span>
+        </div>
+      )
     },
     {
-      id: 'actions',
-      header: 'Actions',
+      id: 'investigate',
+      header: 'Investigation',
       cell: ({ row }) => (
         <div style={{ display: 'flex', gap: 8 }}>
-          <Button variant="ghost" size="sm" onClick={() => unflag.mutate(row.original._id)} title="Unflag">
-            <Flag size={14} /> Unflag
+          <Button variant="outline" size="sm" onClick={() => resolve.mutate({ id: row.original._id, resolution: "GENUINE" })}>
+            Approve
           </Button>
-          <Button variant="danger" size="sm" onClick={() => { if (confirm("Delete this report?")) remove.mutate(row.original._id); }} title="Delete">
-            <Trash2 size={14} />
+          <Button variant="danger" size="sm" onClick={() => resolve.mutate({ id: row.original._id, resolution: "FAKE" })}>
+            Blacklist
+          </Button>
+          <Button variant="ghost" size="sm" title="Escalate to Senior Forensic Team">
+            <Activity size={14} /> Escalate
           </Button>
         </div>
       )
     }
   ];
 
-  if (!data?.length) return <EmptyState title="No flagged reports" message="Clean queue." />;
+  if (!data?.length) return <EmptyState title="No active incidents" message="Investigation queue is empty." />;
 
   return <Table data={data} columns={columns} pagination />;
 }
