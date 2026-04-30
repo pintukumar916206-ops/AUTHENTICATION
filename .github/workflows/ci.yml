@@ -14,6 +14,12 @@ jobs:
       matrix:
         node-version: [18.x, 20.x]
 
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+
     steps:
     - uses: actions/checkout@v4
     
@@ -31,8 +37,12 @@ jobs:
       
     - name: Execute Trust Engine Tests
       run: npm run test
+      env:
+        MONGODB_URI: mongodb://localhost:27017/authentiscan_test
+        JWT_SECRET: ci_test_secret_key_123
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       
     - name: Build Operations Console
       run: npm run build
       env:
-        VITE_API_URL: http://localhost:5000
+        VITE_API_URL: http://localhost:3001
