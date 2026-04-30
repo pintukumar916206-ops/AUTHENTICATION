@@ -77,7 +77,7 @@ export default function DashboardPage() {
     clearSelection();
   }, [selectedIds, reportsData, clearSelection]);
 
-  const { mutate: deleteReport } = useReports({}).deleteReport || { mutate: null }; // We need to import useDeleteReport
+
 
   const handleBatchDelete = useCallback(() => {
     if (confirm(`Delete ${selectedIds.size} reports? This cannot be undone.`)) {

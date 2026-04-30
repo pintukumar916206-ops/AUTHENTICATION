@@ -51,10 +51,10 @@ describe('Forensic Trust Engine', () => {
 
 describe('Operational Logic', () => {
   it('should correctly identify suspicious threshold', () => {
-    const features = { priceRisk: 0.5 }; // -20pts = 80? Wait.
+    const features = { sellerRisk: 0.7, priceRisk: 0.5 }; // -25 - 20 = 55 (SUSPICIOUS)
     // PRICE_OUTLIER is 20. 100 - 20 = 80. Verdict 80 is GENUINE.
     // Let's try SELLER_UNVERIFIED (-25) + PRICE_OUTLIER (-20) = 55.
-    const result = calculateForensicTrust({ sellerRisk: 0.7, priceRisk: 0.5 });
+    const result = calculateForensicTrust(features);
     expect(result.verdict).toBe("SUSPICIOUS");
   });
 });

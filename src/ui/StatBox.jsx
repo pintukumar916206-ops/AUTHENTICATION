@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../utils/cn';
 
-export default function StatBox({ label, value, icon: Icon, trend, className, children }) {
+export default function StatBox({ label, value, icon: Icon, className, children }) {
   return (
     <div className={cn("ui-statbox", className)}>
       <div className="ui-statbox-header">

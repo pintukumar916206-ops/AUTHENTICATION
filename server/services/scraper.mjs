@@ -1,7 +1,6 @@
 import { chromium } from "playwright-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import { devices } from "playwright";
-import * as cheerio from "cheerio";
 import fs from "fs/promises";
 import path from "path";
 import { config } from "./config.mjs";
