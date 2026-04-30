@@ -166,15 +166,40 @@ function addReviewSignals(data, anomalies) {
 
 function addDomainSignals(data, anomalies) {
   const hostname = data.hostname || "";
-  // In a real app, you'd use a WHOIS API here.
-  // We'll simulate risk based on non-standard TLDs or suspicious patterns.
-  if (/\.(icu|top|xyz|biz|loan|date|click)$/.test(hostname)) {
+  const domain = hostname.split('.').slice(-2).join('.');
+
+  // High-risk TLD check — strong correlation with fraud storefronts
+  if (/\.(icu|top|xyz|biz|loan|date|click|gq|cf|tk|ml|ga)$/.test(hostname)) {
     anomalies.push({
       type: "FRESH_DOMAIN",
-      detail: `Storefront is hosted on a high-risk TLD (${hostname.split('.').pop()})`
+      detail: `Storefront is hosted on a high-risk TLD (.${hostname.split('.').pop()})`
     });
     return 0.75;
   }
+
+  // Suspicious patterns: brand-impersonation (e.g., amazon-deals.com), excessive hyphens, numeric IDs
+  const domainPart = hostname.replace(/^www\./, "").split('.')[0];
+  const hasHyphenAbuse = (domainPart.match(/-/g) || []).length >= 2;
+  const hasNumericPadding = /\d{4,}/.test(domainPart);
+  const isBrandImpersonator = /(amazon|apple|samsung|flipkart|myntra)[-.]/.test(hostname) && 
+    !/(amazon\.(com|in|co\.uk)|flipkart\.com|myntra\.com)/.test(hostname);
+
+  if (isBrandImpersonator) {
+    anomalies.push({
+      type: "BRAND_IMPERSONATION",
+      detail: `Domain pattern mimics a trusted brand: ${hostname}`
+    });
+    return 0.92;
+  }
+
+  if (hasHyphenAbuse || hasNumericPadding) {
+    anomalies.push({
+      type: "SUSPICIOUS_DOMAIN",
+      detail: `Domain exhibits structural anomalies typical of fraudulent storefronts: ${domain}`
+    });
+    return 0.55;
+  }
+
   return 0.15;
 }
 

@@ -1,10 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
 import { buildFeatures } from "./featureBuilder.mjs";
-import {
-  calculateForensicTrust,
-  getTrustScore,
-} from "./scoring.mjs";
+import { calculateForensicTrust } from "./scoring.mjs";
 
 let genAI;
 export function getGenAI() {
@@ -95,7 +92,7 @@ RESPOND WITH THIS EXACT JSON STRUCTURE (no markdown, no extra text):
       evidence: [`Data confidence: ${features.dataConfidence}%`],
       market_average: null,
       summary: `Based on ${features.dataConfidence}% complete data, this listing shows ${
-        verdict === "GENUINE" ? "no major red flags" : "potential risk signals"
+        forensic.verdict === "GENUINE" ? "no major red flags" : "potential risk signals"
       }.`,
     };
   }
@@ -162,7 +159,7 @@ export async function runForensicPipeline(product) {
       sellerRisk: proofMap.sellerRisk,
       reviewAnomaly: proofMap.reviewAnomaly,
       discountAnomaly: proofMap.discountAnomaly,
-      dataQuality: `${Math.round(confidence)}% Forensic Capture Quality`,
+      dataQuality: `${Math.round(forensic.confidence)}% Forensic Capture Quality`,
     },
     timestamp: new Date(),
     product,
@@ -171,7 +168,7 @@ export async function runForensicPipeline(product) {
         DOMAIN_TRUST: 1 - features.sellerRisk,
         PRICE_INTEGRITY: 1 - features.priceRisk,
         SELLER_REPUTATION: 1 - features.sellerRisk,
-        DATA_DENSITY: confidence / 100,
+        DATA_DENSITY: forensic.confidence / 100,
       },
       ai_confidence: Math.round(aiResult.confidence * 100),
       forensic_score: forensic.score,

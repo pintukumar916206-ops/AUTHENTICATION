@@ -112,7 +112,7 @@ class DataCore {
       const bcrypt = await import("bcryptjs");
       const hash = await bcrypt.default.hash("Demo1234!", 12);
       await this.createUser({ name: "Demo User", email: "demo@authentiscan.io", passwordHash: hash, role: "user" });
-      console.log("[SEED] Demo user created: demo@authentiscan.io / Demo1234!");
+      console.log("[SEED] Demo user created: demo@authentiscan.io");
 
       const adminEmail = process.env.ADMIN_EMAIL;
       if (adminEmail) {

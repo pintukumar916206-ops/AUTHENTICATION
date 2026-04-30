@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, ShieldAlert, AlertTriangle, Fingerprint, Activity, Clock } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import '../styles/pdf.css';
 
 export default function ExecutivePDFTemplate({ data }) {

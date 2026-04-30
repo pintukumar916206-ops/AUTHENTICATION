@@ -7,7 +7,7 @@ import { rateLimit } from "express-rate-limit";
 import { config } from "./services/config.mjs";
 import core from "./services/core.mjs";
 import { validateScanUrl, urlSafetyMessage } from "./services/urlSafety.mjs";
-import { requireAuth } from "./middleware/auth.mjs";
+import { requireAuth, requireAdmin } from "./middleware/auth.mjs";
 import authRouter from "./routes/auth.mjs";
 import reportsRouter from "./routes/reports.mjs";
 import compareRouter from "./routes/compare.mjs";
@@ -16,18 +16,68 @@ import adminRouter from "./routes/admin.mjs";
 const app = express();
 const PORT = config.port;
 
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors({ origin: true, credentials: true }));
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'"],
+      },
+    },
+  }),
+);
+
+const allowedOrigins = [
+  process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:3000",
+];
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g., mobile apps, curl, Postman)
+      if (!origin || allowedOrigins.includes(origin))
+        return callback(null, true);
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(cookieParser());
 
+// Global rate limiter — applies to all endpoints
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "TOO_MANY_REQUESTS",
+    message: "Request limit exceeded. Please wait 15 minutes.",
+  },
+});
+app.use(globalLimiter);
+
+// Tighter limiter for the expensive scrape operation
 const analyzeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
-  message: { error: "TOO_MANY_REQUESTS", message: "Forensic limits reached. Please wait 15 minutes." },
+  message: {
+    error: "TOO_MANY_REQUESTS",
+    message: "Forensic analysis limit reached. Please wait 15 minutes.",
+  },
 });
 
-app.get("/health", (req, res) => res.status(200).json({ status: "UP", timestamp: new Date(), version: "3.0.0" }));
+app.get("/health", (req, res) =>
+  res
+    .status(200)
+    .json({ status: "UP", timestamp: new Date(), version: "3.0.0" }),
+);
 
 app.get("/api/share/:token", async (req, res) => {
   try {
@@ -51,12 +101,16 @@ app.use("/api/admin", adminRouter);
   await core.seedDemoUser();
 })();
 
-app.get("/api/history", async (req, res) => {
-  const reports = await core.getReports(30);
-  res.json(reports);
+app.get("/api/history", requireAuth, async (req, res) => {
+  try {
+    const reports = await core.getReports(30);
+    res.json(reports);
+  } catch {
+    res.status(500).json({ error: "SERVER_ERROR" });
+  }
 });
 
-app.delete("/api/history", async (req, res) => {
+app.delete("/api/history", requireAuth, requireAdmin, async (req, res) => {
   try {
     await core.clearHistory();
     res.json({ success: true });
@@ -65,10 +119,14 @@ app.delete("/api/history", async (req, res) => {
   }
 });
 
-app.get("/api/trends/:hostname", async (req, res) => {
-  const { hostname } = req.params;
-  const stats = await core.getHostStats(hostname);
-  res.json(stats || { message: "NO_HIST_DATA" });
+app.get("/api/trends/:hostname", requireAuth, async (req, res) => {
+  try {
+    const { hostname } = req.params;
+    const stats = await core.getHostStats(hostname);
+    res.json(stats || { message: "NO_HIST_DATA" });
+  } catch {
+    res.status(500).json({ error: "SERVER_ERROR" });
+  }
 });
 
 app.post("/api/analyze", analyzeLimiter, requireAuth, async (req, res) => {
@@ -114,14 +172,18 @@ app.get("/api/status/:jobId", requireAuth, async (req, res) => {
         return clearInterval(poller);
       }
 
-      if (job.userId && job.userId !== req.user.id && req.user.role !== "admin") {
+      if (
+        job.userId &&
+        job.userId !== req.user.id &&
+        req.user.role !== "admin"
+      ) {
         emit("ERROR", { message: "JOB_FORBIDDEN" });
         res.end();
         return clearInterval(poller);
       }
 
       if (job.logs.length > lastIndex) {
-        job.logs.slice(lastIndex).forEach(m => emit("LOG", { message: m }));
+        job.logs.slice(lastIndex).forEach((m) => emit("LOG", { message: m }));
         lastIndex = job.logs.length;
       }
 
@@ -143,11 +205,13 @@ app.get("/api/status/:jobId", requireAuth, async (req, res) => {
 
   req.on("close", () => {
     clearInterval(poller);
-    res.end();
+    if (!res.writableEnded) res.end();
   });
 });
 const server = app.listen(PORT, () => {
-  console.log(`[READY] AuthentiScan Gateway active on Port ${PORT} [${config.env}]`);
+  console.log(
+    `[READY] AuthentiScan Gateway active on Port ${PORT} [${config.env}]`,
+  );
 });
 
 const shutdown = () => {

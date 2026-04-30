@@ -86,7 +86,7 @@ async function processJob(job) {
         const job = jobResult?.value || jobResult;
 
         if (job && job.status === "CLAIMED") {
-          processJob(job); // Fire and forget
+          processJob(job).catch(err => console.error("[WORKER-FATAL] Unhandled job crash:", err.message));
           jobFound = true;
         }
       }

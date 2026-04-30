@@ -83,6 +83,24 @@ class AmazonAdapter extends BaseScraperAdapter {
   }
 }
 
+class FlipkartAdapter extends BaseScraperAdapter {
+  async scrape() {
+    const raw = {
+      title: await this.getFirstWorking(['span.B_NuCI', 'h1[class*="title"]', 'meta[property="og:title"]']),
+      price: await this.getPrice(['div._30jeq3._16Jk6d', 'div._30jeq3', '[class*="_30jeq3"]']),
+      originalPrice: await this.getPrice(['div._3I9_wc._2p6lqe', 'div._3I9_wc', 'strike']),
+      discount: await this.getNumber(['div._3Ay6Sb._31Dcoz span', '[class*="_3Ay6Sb"]']),
+      rating: await this.getNumber(['div._3LWZlK', 'div._2d4LTz']),
+      reviewCount: await this.getNumber(['span._2_R_DZ', 'span[class*="_2_R_DZ"]']),
+      sellerName: await this.getFirstWorking(['div._1RrHR7 a', 'div._29NdF1 a', 'text=/Sold by/i']),
+      sellerRating: 0,
+      availability: await this.getFirstWorking(['div._1gcUFk', 'text=/In Stock|Out of Stock/i']),
+      description: await this.getFirstWorking(['div._1mXcCf p', 'div._1AN87F', 'meta[name="description"]']),
+    };
+    return this.normalize(raw);
+  }
+}
+
 class GenericAdapter extends BaseScraperAdapter {
   async scrape() {
     const raw = {
@@ -101,11 +119,47 @@ class GenericAdapter extends BaseScraperAdapter {
   }
 }
 
-const SCRAPER_HEALTH = {
+export const SCRAPER_HEALTH = {
   amazon: { success: 0, fail: 0 },
   flipkart: { success: 0, fail: 0 },
   generic: { success: 0, fail: 0 }
 };
+
+let _healthDb = null;
+async function getHealthCollection() {
+  if (_healthDb) return _healthDb;
+  try {
+    const { MongoClient } = await import("mongodb");
+    const client = new MongoClient(process.env.MONGODB_URI);
+    await client.connect();
+    _healthDb = client.db("authentiscan").collection("scraper_health");
+    // Load persisted health stats on startup
+    const saved = await _healthDb.findOne({ type: "health_snapshot" });
+    if (saved?.data) {
+      Object.assign(SCRAPER_HEALTH, saved.data);
+      console.log("[SCRAPER-HEALTH] Restored historical health stats from DB.");
+    }
+    return _healthDb;
+  } catch {
+    return null;
+  }
+}
+
+async function persistScraperHealth() {
+  try {
+    const col = await getHealthCollection();
+    if (!col) return;
+    await col.updateOne(
+      { type: "health_snapshot" },
+      { $set: { type: "health_snapshot", data: SCRAPER_HEALTH, updatedAt: new Date() } },
+      { upsert: true }
+    );
+  } catch {
+    // Non-critical — health stats are best-effort
+  }
+}
+
+let _healthOps = 0;
 
 async function logScraperFailure(page, platform) {
   try {
@@ -193,6 +247,7 @@ export async function cleanup() {
 
 function getAdapter(url, page) {
   if (url.includes('amazon')) return new AmazonAdapter(page);
+  if (url.includes('flipkart')) return new FlipkartAdapter(page);
   return new GenericAdapter(page);
 }
 
@@ -200,7 +255,7 @@ export async function scrapeProduct(targetUrl, onProgress = () => {}) {
   const safeUrl = await validateScanUrl(targetUrl);
   if (!safeUrl.ok) return null;
 
-  const platform = targetUrl.includes('amazon') ? 'amazon' : 'generic';
+  const platform = targetUrl.includes('amazon') ? 'amazon' : targetUrl.includes('flipkart') ? 'flipkart' : 'generic';
 
   return await withRetry(async (attempt) => {
     onProgress(`FORENSIC_CAPTURE_INIT (Attempt ${attempt + 1})`);
@@ -224,6 +279,8 @@ export async function scrapeProduct(targetUrl, onProgress = () => {}) {
 
       SCRAPER_HEALTH[platform].success++;
       proxyMatrix.recordSuccess(proxyObj);
+      // Persist health every 10 successful operations
+      if (++_healthOps % 10 === 0) persistScraperHealth();
       await context.close();
       return { ...data, hostname: new URL(safeUrl.url).hostname, timestamp: new Date() };
     } catch (err) {
