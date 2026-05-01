@@ -2,7 +2,6 @@ import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { LayoutDashboard, ScanLine, GitCompare, Shield, LogOut, User, Code } from "lucide-react";
-import HUDOverlay from "../components/HUDOverlay";
 import "../styles/main.css";
 
 const navItems = [
@@ -26,7 +25,6 @@ export default function AppLayout({ children }) {
 
   return (
     <div className="app-shell">
-      <HUDOverlay />
 
       <aside className="sidebar">
         <div className="sidebar-brand">

@@ -292,6 +292,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .rci-method {
@@ -881,7 +883,9 @@
 
 .batch-close {
   background: transparent;
-  border: none;/* Forensic Scoring Sheet */
+  border: none;
+}
+/* Forensic Scoring Sheet */
 .forensic-scoring-sheet {
   padding: 32px;
   margin: 24px 0;
@@ -1098,109 +1102,164 @@
   color: var(--text-white);
 }
 
-/* Forensic Scoring Sheet */
-.forensic-scoring-sheet {
-  padding: 32px;
-  margin: 24px 0;
-  background: rgba(10, 10, 10, 0.4);
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius-lg);
-}
-
-.audit-sheet-body {
-  margin-top: 24px;
+/* Explain Score Modal & Forensic UI */
+.explain-model-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
-.audit-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-}
-
-.audit-info {
+.signal-contribution-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.audit-label {
-  font-family: var(--font-dot);
-  font-size: 0.9rem;
-  letter-spacing: 1px;
-  color: var(--text-white);
-}
-
-.audit-desc {
-  font-size: 0.75rem;
-  color: var(--text-grey);
-  max-width: 500px;
-}
-
-.audit-pts {
-  font-family: var(--font-mono);
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.deduction-row .audit-pts {
-  color: var(--error);
-}
-
-.base-row .audit-pts {
-  color: var(--success);
-}
-
-.audit-divider {
-  height: 1px;
-  background: var(--panel-border);
-  margin: 8px 0;
-}
-
-.final-row .audit-label {
-  font-size: 1.1rem;
-  color: var(--nothing-red);
-}
-
-.final-row .audit-pts {
-  font-size: 1.4rem;
-  color: var(--nothing-red);
-}
-
-.v-score-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
   gap: 12px;
 }
 
-.v-confidence-mini {
+.sig-contrib-item {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  width: 120px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-white);
+  border-radius: var(--radius-md);
 }
 
-.v-confidence-mini span {
-  font-size: 0.65rem;
+.sig-contrib-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sig-name {
   font-family: var(--font-dot);
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+.sig-meta {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
   color: var(--text-grey);
 }
 
-.conf-bar-bg {
-  width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 2px;
-  overflow: hidden;
+.impact-pill {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
-.conf-bar-fill {
-  height: 100%;
-  background: var(--nothing-red);
-  box-shadow: 0 0 10px var(--nothing-red);
+.impact-fail { background: rgba(255, 0, 49, 0.15); color: var(--error); }
+.impact-warning { background: rgba(255, 171, 0, 0.15); color: var(--warning); }
+.impact-pass { background: rgba(0, 230, 118, 0.15); color: var(--success); }
+
+.explain-footer-stats {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--panel-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
+
+.ef-stat {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-grey);
+}
+
+.ef-stat.total {
+  font-family: var(--font-dot);
+  font-size: 1.1rem;
+  color: #fff;
+  margin-top: 8px;
+}
+
+/* Recommendation Box */
+.recommendation-box {
+  background: rgba(16, 185, 129, 0.03);
+  border: 1px dashed rgba(16, 185, 129, 0.3);
+}
+
+.rec-content {
+  margin-top: 12px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--text-grey);
+}
+
+/* Formula UI */
+.formula-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #000;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  margin-top: 12px;
+}
+
+.formula-box code {
+  font-family: var(--font-mono);
+  color: var(--primary);
+  font-size: 0.8rem;
+}
+
+/* Admin Investigation Ops */
+.investigation-ops {
+  margin-top: 24px;
+}
+
+.ops-btn-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.ops-btn-grid button {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-white);
+  color: var(--text-grey);
+  padding: 10px;
+  border-radius: var(--radius-md);
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ops-btn-grid button.active {
+  background: var(--nothing-red);
+  color: #fff;
+  border-color: var(--nothing-red);
+}
+
+.investigation-history-trail {
+  margin-top: 32px;
+}
+
+.trail-item {
+  position: relative;
+  padding-left: 20px;
+  border-left: 1px solid var(--panel-border);
+  margin-bottom: 20px;
+}
+
+.trail-item::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 0;
+  width: 7px;
+  height: 7px;
+  background: var(--nothing-red);
+  border-radius: 50%;
+}
+
+.trail-date { font-size: 0.65rem; color: var(--text-grey); display: block; }
+.trail-status { font-weight: 700; font-size: 0.8rem; color: #fff; }
+.trail-note { font-size: 0.75rem; color: var(--text-grey); margin-top: 4px; }

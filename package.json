@@ -8,6 +8,7 @@
     "start:client": "vite",
     "server": "node server/index.mjs",
     "worker": "node server/worker.mjs",
+    "worker:cluster": "set CLUSTER_MODE=true&& node server/worker.mjs",
     "start": "node server/index.mjs",
     "build": "vite build",
     "preview": "vite preview",

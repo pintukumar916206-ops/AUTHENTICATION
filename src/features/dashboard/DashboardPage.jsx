@@ -52,21 +52,25 @@ export default function DashboardPage() {
   const handleBatchExport = useCallback(() => {
     // Generate CSV from selected reports
     if (!reportsData?.reports) return;
-    const selected = reportsData.reports.filter(r => selectedIds.has(r._id.toString()));
+    const selected = reportsData.reports.filter((r) =>
+      selectedIds.has(r._id.toString()),
+    );
     const csvContent = [
       ["ID", "Product", "Hostname", "Verdict", "Score", "Method", "Date"],
-      ...selected.map(r => [
-        r._id, 
-        r.product?.title || "Unknown", 
-        r.product?.hostname || "Unknown", 
-        r.verdict, 
-        r.score, 
-        r.method || "AI Pattern", 
-        new Date(r.savedAt || r.timestamp).toLocaleDateString()
-      ])
-    ].map(e => e.join(",")).join("\n");
+      ...selected.map((r) => [
+        r._id,
+        r.product?.title || "Unknown",
+        r.product?.hostname || "Unknown",
+        r.verdict,
+        r.score,
+        r.method || "AI Pattern",
+        new Date(r.savedAt || r.timestamp).toLocaleDateString(),
+      ]),
+    ]
+      .map((e) => e.join(","))
+      .join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
@@ -77,16 +81,15 @@ export default function DashboardPage() {
     clearSelection();
   }, [selectedIds, reportsData, clearSelection]);
 
-
-
   const handleBatchDelete = useCallback(() => {
     if (confirm(`Delete ${selectedIds.size} reports? This cannot be undone.`)) {
       // In a real app, you'd have a batchDelete endpoint. Here we'll just alert for now or implement it if useDeleteReport exists.
-      alert("Batch delete triggered for: " + Array.from(selectedIds).join(", "));
+      alert(
+        "Batch delete triggered for: " + Array.from(selectedIds).join(", "),
+      );
       clearSelection();
     }
   }, [selectedIds, clearSelection]);
-
 
   const statCards = [
     {
@@ -201,9 +204,9 @@ export default function DashboardPage() {
             {reportsData.reports.map((report) => {
               const id = report._id.toString();
               return (
-                <ReportCard 
-                  key={id} 
-                  report={report} 
+                <ReportCard
+                  key={id}
+                  report={report}
                   isSelected={selectedIds.has(id)}
                   selectionMode={selectedIds.size > 0}
                   onToggleSelect={toggleSelect}
@@ -224,7 +227,9 @@ export default function DashboardPage() {
             <Button variant="danger" size="sm" onClick={handleBatchDelete}>
               Delete
             </Button>
-            <button className="batch-close" onClick={clearSelection}>×</button>
+            <button className="batch-close" onClick={clearSelection}>
+              ×
+            </button>
           </div>
         </div>
       )}

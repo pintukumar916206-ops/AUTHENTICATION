@@ -99,7 +99,7 @@
   pointer-events: none;
 }
 
-.auth-card > * {
+.auth-card>* {
   position: relative;
   z-index: 1;
 }

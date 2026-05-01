@@ -11,7 +11,7 @@ export function getGenAI() {
 }
 
 const AI_SCHEMA = z.object({
-  verdict: z.enum(["GENUINE", "SUSPICIOUS", "FAKE"]),
+  verdict: z.enum(["GENUINE", "SUSPICIOUS", "FAKE", "UNVERIFIABLE"]),
   confidence: z.number().min(0).max(1),
   reasons: z.array(z.string()),
   evidence: z.array(z.string()),
@@ -38,7 +38,7 @@ async function runAIVerifier(product, features, heuristicVerdict) {
       category: features.category,
     };
 
-    const prompt = `You are an e-commerce fraud detection specialist. Analyze this product listing and return ONLY valid JSON.
+    const prompt = `Analyze this product listing and return ONLY valid JSON.
 
 PRODUCT DATA:
 ${JSON.stringify(payload, null, 2)}
@@ -50,12 +50,12 @@ You are the narrative support system. You must NOT contradict the SYSTEM ALGORIT
 
 RESPOND WITH THIS EXACT JSON STRUCTURE (no markdown, no extra text):
 {
-  "verdict": "GENUINE" | "SUSPICIOUS" | "FAKE",
+  "verdict": "GENUINE" | "SUSPICIOUS" | "FAKE" | "UNVERIFIABLE",
   "confidence": 0.0-1.0,
   "reasons": ["reason 1", "reason 2", "reason 3"],
   "evidence": ["evidence point 1", "evidence point 2"],
   "market_average": estimated_market_price_in_rupees,
-  "summary": "One clear sentence verdict"
+  "summary": "Forensic summary"
 }`;
 
     const result = await model.generateContent(prompt);
@@ -68,7 +68,6 @@ RESPOND WITH THIS EXACT JSON STRUCTURE (no markdown, no extra text):
 
     if (validated.market_average && product.price > 0) {
       if (Math.abs(validated.market_average - product.price) > (product.price * 5)) {
-        console.warn("[AI-VERIFIER] Hallucination Shield triggered: Discarding impossible AI market average.");
         validated.market_average = undefined;
       }
     }
@@ -87,12 +86,12 @@ RESPOND WITH THIS EXACT JSON STRUCTURE (no markdown, no extra text):
       verdict: forensic.verdict,
       confidence: features.dataConfidence / 100,
       reasons: [
-        "AI analysis unavailable. Verdict based on heuristic scoring engine.",
+        "Verdict based on deterministic heuristic scoring engine.",
       ],
       evidence: [`Data confidence: ${features.dataConfidence}%`],
       market_average: null,
-      summary: `Based on ${features.dataConfidence}% complete data, this listing shows ${
-        forensic.verdict === "GENUINE" ? "no major red flags" : "potential risk signals"
+      summary: `Based on ${features.dataConfidence}% complete data, this listing is ${
+        forensic.verdict === "GENUINE" ? "clean" : forensic.verdict === "UNVERIFIABLE" ? "inconclusive" : "suspicious"
       }.`,
     };
   }
@@ -103,13 +102,13 @@ export async function runForensicPipeline(product) {
     throw new Error("Product capture is required before analysis.");
   }
 
-  const features = buildFeatures(product);
+  const features = await buildFeatures(product);
 
   const forensic = calculateForensicTrust(features);
   const aiResult = await runAIVerifier(product, features, forensic.verdict);
   
   const finalVerdict = forensic.verdict;
-  const anomalies = forensic.audit_trail;
+  const anomalies = forensic.breakdown;
 
   if (aiResult.market_average && aiResult.market_average > 0) {
     const deviation =
@@ -140,7 +139,7 @@ export async function runForensicPipeline(product) {
 
   if (!proofMap.priceDeviation) {
     const avg = product.market_baseline || aiResult.market_average;
-    proofMap.priceDeviation = avg ? `Price aligned with market logic (Listed: INR ${product.price}, Mkt: INR ${avg})` : "Price is within acceptable variance for category";
+    proofMap.priceDeviation = avg ? `Price logic (Listed: INR ${product.price}, Mkt: INR ${avg})` : "Price is within acceptable range";
   }
   if (!proofMap.sellerRisk) proofMap.sellerRisk = `Seller (${product.sellerName || 'unknown'}) meets baseline reliability`;
   if (!proofMap.reviewAnomaly) proofMap.reviewAnomaly = `Reviews appear organic (${product.reviewCount} total / ${product.rating} avg)`;
@@ -154,6 +153,7 @@ export async function runForensicPipeline(product) {
     reasoning: aiResult.reasons,
     evidence: aiResult.evidence,
     risk_signals: anomalies,
+    breakdown: forensic.breakdown,
     proof: {
       priceDeviation: proofMap.priceDeviation,
       sellerRisk: proofMap.sellerRisk,

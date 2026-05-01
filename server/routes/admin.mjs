@@ -17,7 +17,6 @@ router.get("/stats", async (req, res) => {
 
 router.get("/health", async (req, res) => {
   try {
-    // Import dynamically to avoid circular issues or ensure current values
     const { SCRAPER_HEALTH } = await import("../services/scraper.mjs");
     res.json({
       uptime: process.uptime(),
@@ -34,6 +33,16 @@ router.get("/flagged", async (req, res) => {
     const { page = 1, limit = 20 } = req.query;
     const reports = await core.getFlaggedReports({ page: parseInt(page), limit: parseInt(limit) });
     res.json(reports);
+  } catch {
+    res.status(500).json({ error: "SERVER_ERROR" });
+  }
+});
+
+router.get("/audit-logs", async (req, res) => {
+  try {
+    const { page = 1, limit = 50 } = req.query;
+    const logs = await core.getAuditLogs({ page: parseInt(page), limit: parseInt(limit) });
+    res.json(logs);
   } catch {
     res.status(500).json({ error: "SERVER_ERROR" });
   }
@@ -62,7 +71,7 @@ router.patch("/reports/:id/flag", async (req, res) => {
 
 router.delete("/reports/:id", async (req, res) => {
   try {
-    await core.deleteReport(req.params.id);
+    await core.deleteReport(req.params.id, req.user.id, req.ip);
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: "SERVER_ERROR" });
@@ -79,6 +88,27 @@ router.patch("/users/:id/role", async (req, res) => {
     await core.updateUser(req.params.id, { role });
     res.json({ success: true });
   } catch {
+    res.status(500).json({ error: "SERVER_ERROR" });
+  }
+});
+
+router.patch("/reports/:id/moderate", async (req, res) => {
+  const { status, notes } = req.body;
+  if (!["GENUINE", "FAKE", "SUSPICIOUS", "PENDING"].includes(status)) {
+    return res.status(400).json({ error: "VALIDATION_ERROR" });
+  }
+  
+  try {
+    const updated = await core.moderateReport(req.params.id, {
+      status,
+      notes,
+      adminId: req.user.id,
+      ip: req.ip
+    });
+    if (!updated) return res.status(404).json({ error: "NOT_FOUND" });
+    res.json({ success: true, report: updated });
+  } catch (err) {
+    console.error("[ADMIN-MODERATION-ERROR]", err.message);
     res.status(500).json({ error: "SERVER_ERROR" });
   }
 });

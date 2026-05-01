@@ -1,16 +1,17 @@
-import React from "react";
-import { ShieldCheck, ShieldAlert, AlertTriangle, Fingerprint, Activity, Database, RefreshCcw, Tag, User, Star, Percent } from "lucide-react";
+import React, { useState } from "react";
+import { ShieldCheck, ShieldAlert, AlertTriangle, Fingerprint, Activity, Database, RefreshCcw, Tag, User, Star, Percent, Info, ExternalLink, ChevronRight } from "lucide-react";
 import TrustRadar from "./TrustRadar";
 import PriceInsights from "./PriceInsights";
+import { Modal, Button } from "../ui";
 
 const SEVERITY_COLOR = {
-  CRITICAL: "#ff2222",
-  HIGH: "#ff5555",
-  MEDIUM: "#ffb300",
-  LOW: "#888",
+  FAIL: "#ff2222",
+  WARNING: "#ffb300",
+  PASS: "#10b981",
 };
 
 export default function ForensicReport({ data, onReset }) {
+  const [explainOpen, setExplainOpen] = useState(false);
   const {
     verdict,
     score,
@@ -18,19 +19,22 @@ export default function ForensicReport({ data, onReset }) {
     reasoning = [],
     evidence = [],
     risk_signals = [],
+    breakdown = [],
     summary,
     product,
     proof,
-    metadata
+    metadata,
+    formula
   } = data;
 
-  const verdictLabel = verdict === "GENUINE" ? "✓ REAL PRODUCT" :
-                       verdict === "FAKE" ? "⚠ FAKE / counterfeited" :
-                       verdict === "SUSPICIOUS" ? "~ SUSPICIOUS" : "◌ UNVERIFIABLE";
+  const isUnverifiable = verdict === "UNVERIFIABLE";
+  const verdictLabel = isUnverifiable ? "◌ INSUFFICIENT DATA" :
+                       verdict === "GENUINE" ? "✓ REAL PRODUCT" :
+                       verdict === "FAKE" ? "⚠ FAKE / COUNTERFEIT" : "~ SUSPICIOUS";
 
-  const verdictClass = verdict === "GENUINE" ? "genuine" :
-                       verdict === "FAKE" ? "fake" :
-                       verdict === "SUSPICIOUS" ? "suspicious" : "unverifiable";
+  const verdictClass = isUnverifiable ? "unverifiable" :
+                       verdict === "GENUINE" ? "genuine" :
+                       verdict === "FAKE" ? "fake" : "suspicious";
 
   return (
     <div className="report-stage anim-entry">
@@ -42,159 +46,71 @@ export default function ForensicReport({ data, onReset }) {
 
       <div className={`report-card verdict-banner ${verdictClass}`}>
         <div className="v-icon">
-          {verdict === "GENUINE" ? <ShieldCheck size={44} className="txt-genuine" /> :
+          {isUnverifiable ? <Fingerprint size={44} className="txt-grey" /> :
+           verdict === "GENUINE" ? <ShieldCheck size={44} className="txt-genuine" /> :
            verdict === "FAKE" ? <ShieldAlert size={44} className="txt-fake" /> :
            <AlertTriangle size={44} className="txt-suspicious" />}
         </div>
         <div className="v-content">
           <h1 className={`v-title txt-${verdictClass}`}>{verdictLabel}</h1>
-          <p className="v-summary">{summary || "Automated audit complete. Review risk signals below."}</p>
+          <p className="v-summary">
+            {isUnverifiable 
+              ? "Automated audit restricted. Insufficient data points captured for a defensible verdict." 
+              : summary || "Automated audit complete. Review risk signals below."}
+          </p>
         </div>
-        <div className="v-score-stack">
-          <div className="v-score-box">
-            <span className="sc-val">{score}</span>
-            <span className="sc-label">Trust Score</span>
-          </div>
-          <div className="v-confidence-mini">
-            <div className="conf-bar-bg">
-              <div className="conf-bar-fill" style={{ width: `${confidence}%` }}></div>
+        {!isUnverifiable && (
+          <div className="v-score-stack">
+            <div className="v-score-box" onClick={() => setExplainOpen(true)} style={{ cursor: 'pointer' }}>
+              <span className="sc-val">{score}</span>
+              <span className="sc-label">Trust Score <Info size={10} /></span>
             </div>
-            <span>{confidence}% Confidence</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="forensic-scoring-sheet report-card">
-        <div className="bl-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Activity size={13} /> <span>SCORING AUDIT TRAIL</span>
-          </div>
-          {confidence < 50 && (
-            <span style={{ color: 'var(--warning)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <AlertTriangle size={12} /> INSUFFICIENT DATA (PROVISIONAL SCORE)
-            </span>
-          )}
-        </div>
-        <div className="audit-sheet-body">
-          <div className="audit-row base-row">
-            <span className="audit-label">Forensic Base Score</span>
-            <span className="audit-pts">+100</span>
-          </div>
-          
-          {/* Deductions */}
-          {risk_signals && risk_signals.length > 0 ? (
-            risk_signals.map((sig, i) => (
-              <div key={i} className="audit-row deduction-row">
-                <div className="audit-info">
-                  <span className="audit-label">{sig.label}</span>
-                  <span className="audit-desc">{sig.description}</span>
-                </div>
-                <span className="audit-pts">-{sig.pts}</span>
+            <div className="v-confidence-mini">
+              <div className="conf-bar-bg">
+                <div className="conf-bar-fill" style={{ width: `${confidence}%` }}></div>
               </div>
-            ))
-          ) : (
-            <div className="audit-row empty-row">
-              <span className="audit-label" style={{ color: 'var(--text-grey)' }}>No deductive signals detected</span>
-              <span className="audit-pts" style={{ color: 'var(--text-grey)' }}>0</span>
+              <span>{confidence}% Coverage</span>
             </div>
-          )}
+          </div>
+        )}
+      </div>
 
-          {/* Mitigations */}
-          {data.mitigations && data.mitigations.length > 0 && (
-            <>
-              <div className="audit-divider" style={{ borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.05)' }}></div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--accent-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>False Positive Mitigations Applied</div>
-              {data.mitigations.map((mit, i) => (
-                <div key={`mit-${i}`} className="audit-row base-row">
-                  <div className="audit-info">
-                    <span className="audit-label" style={{ color: 'var(--success)' }}>{mit.label}</span>
-                    <span className="audit-desc">{mit.description}</span>
-                  </div>
-                  <span className="audit-pts">+{mit.pts}</span>
-                </div>
-              ))}
-            </>
-          )}
-
-          <div className="audit-divider"></div>
-          <div className="audit-row final-row">
-            <span className="audit-label">Final Forensic Trust</span>
-            <span className="audit-pts">{score}</span>
+      {isUnverifiable && (
+        <div className="report-card alert-card warning">
+          <AlertTriangle size={16} />
+          <div>
+            <strong>Forensic Alert: Data coverage at {confidence}%</strong>
+            <p>Verdict suppressed to ensure mathematical integrity. Minimum 50% data coverage required for final adjudication.</p>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="forensic-hud-strip">
         <div className="hud-metric">
           <div className="hud-meter-bg">
             <div className="hud-meter-fill" style={{ width: `${confidence}%` }}></div>
           </div>
-          <span className="hud-label">System Confidence: {confidence}%</span>
+          <span className="hud-label">Confidence Engine: {confidence}% Reliable</span>
         </div>
         <div className="hud-meta-tags">
-          <span className="hud-tag"><Activity size={10}/> {metadata?.category || "Unknown Category"}</span>
-          <span className="hud-tag"><Fingerprint size={10}/> {metadata?.data_confidence ?? 0}% Data Quality</span>
+          <span className="hud-tag"><Activity size={10}/> {metadata?.category || "General"}</span>
+          <span className="hud-tag"><Fingerprint size={10}/> {data.signals_processed || 0}/5 Captured</span>
         </div>
       </div>
 
-      {proof && (
-        <div className="proof-panel report-card">
-          <div className="bl-header" style={{ marginBottom: "20px" }}>
-            <Fingerprint size={13} /> <span>EVIDENCE TRAIL — Why this verdict?</span>
-          </div>
-          <div className="proof-grid">
-            <div className="proof-item">
-              <Tag size={13} style={{ color: "var(--accent-muted)" }} />
-              <div>
-                <div className="proof-key">Price Check</div>
-                <div className="proof-val">{proof.priceDeviation}</div>
-              </div>
-            </div>
-            <div className="proof-item">
-              <User size={13} style={{ color: "var(--accent-muted)" }} />
-              <div>
-                <div className="proof-key">Seller</div>
-                <div className="proof-val">{proof.sellerRisk}</div>
-              </div>
-            </div>
-            <div className="proof-item">
-              <Star size={13} style={{ color: "var(--accent-muted)" }} />
-              <div>
-                <div className="proof-key">Reviews</div>
-                <div className="proof-val">{proof.reviewAnomaly}</div>
-              </div>
-            </div>
-            <div className="proof-item">
-              <Percent size={13} style={{ color: "var(--accent-muted)" }} />
-              <div>
-                <div className="proof-key">Discount</div>
-                <div className="proof-val">{proof.discountAnomaly}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="anomaly-stage">
+      <div className="report-card recommendation-box">
         <div className="bl-header">
-          <ShieldAlert size={13} className="txt-fake" /> <span>FORENSIC DEDUCTIONS ({risk_signals?.length || 0})</span>
+          <ShieldCheck size={13} /> <span>FINAL OPERATIONAL RECOMMENDATION</span>
         </div>
-        <div className="anomaly-grid">
-          {risk_signals && risk_signals.length > 0 ? (
-            risk_signals.map((sig, i) => (
-              <div key={i} className={`anomaly-card ${sig.pts > 25 ? 'critical' : 'high'}`}>
-                <div className="a-header">
-                  <span className="a-pts">-{sig.pts}pts</span>
-                  <span className="a-type">{sig.label}</span>
-                </div>
-                <p className="a-detail">{sig.description}</p>
-              </div>
-            ))
+        <div className="rec-content">
+          {verdict === "GENUINE" ? (
+            <p>Asset meets all primary integrity benchmarks. Proceed with procurement. Merchant demonstrates high historic reliability.</p>
+          ) : verdict === "FAKE" ? (
+            <p>High-risk asset identified. Correlation with known fraudulent patterns is &gt;90%. Immediate quarantine recommended.</p>
+          ) : isUnverifiable ? (
+            <p>Data points insufficient. Perform manual verification of seller business registration and physical inventory snapshots.</p>
           ) : (
-            <div className="anomaly-card empty">
-              <ShieldCheck size={16} />
-              <span>Zero Deductions. The listing meets all deterministic integrity benchmarks.</span>
-            </div>
+            <p>Suspicious signals detected. Proceed with caution. Verify physical location and payment endpoints before transaction.</p>
           )}
         </div>
       </div>
@@ -202,48 +118,80 @@ export default function ForensicReport({ data, onReset }) {
       <div className="report-details-grid">
         <div className="details-card">
           <div className="bl-header">
-            <ShieldCheck size={13} className="txt-genuine" /> <span>Positive Indicators ({evidence.length})</span>
+            <Fingerprint size={13} /> <span>EVIDENCE TRAIL</span>
           </div>
-          {evidence.length === 0 ? (
-            <p style={{ color: "#555", fontFamily: "var(--font-mono)", fontSize: "0.75rem", marginTop: '12px' }}>No positive indicators found.</p>
-          ) : (
-            <div className="signal-list" style={{ marginTop: '12px' }}>
-              {evidence.map((sig, i) => (
-                <div key={i} className="signal-item genuine-signal">
-                  <div className="signal-label">{sig.label || sig}</div>
-                  {sig.detail && <div className="signal-detail">{sig.detail}</div>}
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="proof-grid-mini">
+            {proof && Object.entries(proof).map(([key, val], i) => (
+              <div key={i} className="proof-mini-item">
+                <span className="pm-key">{key.replace(/([A-Z])/g, ' $1').toUpperCase()}</span>
+                <span className="pm-val">{val}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="details-card">
-          <TrustRadar metrics={metadata?.engine} />
-
-          <div className="bl-header metrics-section-header">
-            <Activity size={13} /> <span>AI Reasoning</span>
+          <div className="bl-header">
+            <Activity size={13} /> <span>SCORING FORMULA</span>
           </div>
-          <ul className="f-reasoning-list">
-            {reasoning.map((r, i) => (
-              <li key={i}>{r}</li>
-            ))}
-          </ul>
+          <div className="formula-box">
+            <code>{formula || "S = 100 - Σ(Ri * Wi)"}</code>
+            <Button variant="ghost" size="sm" onClick={() => setExplainOpen(true)}>
+              Explain Model <ChevronRight size={12} />
+            </Button>
+          </div>
         </div>
       </div>
 
       <div className="report-card">
-        <div className="bl-header" style={{ marginBottom: "20px" }}>
-          <Activity size={13} /> <span>Price Integrity Check</span>
-        </div>
         <PriceInsights currentPrice={product?.price} hostname={product?.hostname} />
       </div>
 
+      <Modal isOpen={explainOpen} onClose={() => setExplainOpen(false)} title="Forensic Trust Model Explained">
+        <div className="explain-model-body">
+          <p className="txt-muted" style={{ fontSize: '0.85rem', marginBottom: '20px' }}>
+            Our engine uses a deterministic weighted model to evaluate merchant and product integrity. 
+            The score starts at 100 and is reduced based on identified risk signals.
+          </p>
+          
+          <div className="signal-contribution-list">
+            {breakdown.map((sig, i) => (
+              <div key={i} className="sig-contrib-item">
+                <div className="sig-contrib-info">
+                  <div className="sig-name">{sig.label}</div>
+                  <div className="sig-meta">Weight: {Math.round(sig.weight * 100)}% | Risk: {sig.risk}%</div>
+                </div>
+                <div className="sig-contrib-impact">
+                  <span className={`impact-pill impact-${sig.status.toLowerCase()}`}>
+                    -{sig.deduction} pts
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="explain-footer-stats">
+            <div className="ef-stat">
+              <span>Base Score</span>
+              <span>100</span>
+            </div>
+            <div className="ef-stat">
+              <span>Total Deductions</span>
+              <span className="txt-fake">-{100 - score}</span>
+            </div>
+            <div className="ef-stat total">
+              <span>Final Trust Score</span>
+              <span>{score}%</span>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
       <footer className="report-footer-meta">
         <Database size={12} />
-        <span>AuthentiScan v2</span>
+        <span>AuthentiScan Forensic Division</span>
         <span>•</span>
-        <span>Source: {product?.hostname || "Unknown"}</span>
+        <span>ID: {data._id?.toString().toUpperCase()}</span>
         <span>•</span>
         <span>{new Date(data.timestamp).toLocaleString()}</span>
       </footer>

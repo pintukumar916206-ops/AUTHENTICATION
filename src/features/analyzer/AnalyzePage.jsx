@@ -42,7 +42,7 @@ export default function AnalyzePage() {
   });
 
   const pollJob = useCallback((jobId) => {
-    const token = useAuthStore.getState().token;
+    const { token } = useAuthStore.getState();
     const es = new EventSource(`/api/status/${jobId}?token=${token}`);
     eventSourceRef.current = es;
 

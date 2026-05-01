@@ -25,8 +25,10 @@ const MARKET_REFERENCES = {
   },
 };
 
-const TRUSTED_SELLERS = /amazon|flipkart|retail|official|authorized|genuine|cloudtail|appario/i;
-const TRUSTED_HOSTS = /amazon\.|flipkart\.|myntra\.|nykaa\.|meesho\.|ajio\.|walmart\.|bestbuy\.|target\./i;
+const TRUSTED_SELLERS =
+  /amazon|flipkart|retail|official|authorized|genuine|cloudtail|appario/i;
+const TRUSTED_HOSTS =
+  /amazon\.|flipkart\.|myntra\.|nykaa\.|meesho\.|ajio\.|walmart\.|bestbuy\.|target\./i;
 
 function clamp(value, min = 0, max = 1) {
   return Math.min(max, Math.max(min, Number.isFinite(value) ? value : 0));
@@ -34,16 +36,25 @@ function clamp(value, min = 0, max = 1) {
 
 function detectCategory(title = "") {
   const value = title.toLowerCase();
-  if (/shoe|sneaker|boot|sandal|jordan|nike|adidas|puma/.test(value)) return "shoes";
-  if (/iphone|phone|macbook|laptop|earbud|headphone|watch|camera|sony|bose|nothing/.test(value)) return "electronics";
-  if (/shirt|jean|jacket|dress|hoodie|kurta|saree|zara|h&m|levi/.test(value)) return "clothing";
+  if (/shoe|sneaker|boot|sandal|jordan|nike|adidas|puma/.test(value))
+    return "shoes";
+  if (
+    /iphone|phone|macbook|laptop|earbud|headphone|watch|camera|sony|bose|nothing/.test(
+      value,
+    )
+  )
+    return "electronics";
+  if (/shirt|jean|jacket|dress|hoodie|kurta|saree|zara|h&m|levi/.test(value))
+    return "clothing";
   return "default";
 }
 
 function getDiscount(data) {
   if (Number.isFinite(data.discount) && data.discount > 0) return data.discount;
   if (data.price > 0 && data.originalPrice > data.price) {
-    return Math.round(((data.originalPrice - data.price) / data.originalPrice) * 100);
+    return Math.round(
+      ((data.originalPrice - data.price) / data.originalPrice) * 100,
+    );
   }
   return 0;
 }
@@ -58,9 +69,10 @@ function buildConfidence(data, discount) {
   if (discount > 80) penalty += 0.08;
 
   const computed = clamp(1 - penalty);
-  const capture = data.forensicConfidence === undefined
-    ? 1
-    : clamp(Number(data.forensicConfidence));
+  const capture =
+    data.forensicConfidence === undefined
+      ? 1
+      : clamp(Number(data.forensicConfidence));
 
   return Math.round(Math.min(computed, capture) * 100);
 }
@@ -166,28 +178,29 @@ function addReviewSignals(data, anomalies) {
 
 function addDomainSignals(data, anomalies) {
   const hostname = data.hostname || "";
-  const domain = hostname.split('.').slice(-2).join('.');
+  const domain = hostname.split(".").slice(-2).join(".");
 
-  // High-risk TLD check — strong correlation with fraud storefronts
+
   if (/\.(icu|top|xyz|biz|loan|date|click|gq|cf|tk|ml|ga)$/.test(hostname)) {
     anomalies.push({
       type: "FRESH_DOMAIN",
-      detail: `Storefront is hosted on a high-risk TLD (.${hostname.split('.').pop()})`
+      detail: `Storefront is hosted on a high-risk TLD (.${hostname.split(".").pop()})`,
     });
     return 0.75;
   }
 
-  // Suspicious patterns: brand-impersonation (e.g., amazon-deals.com), excessive hyphens, numeric IDs
-  const domainPart = hostname.replace(/^www\./, "").split('.')[0];
+
+  const domainPart = hostname.replace(/^www\./, "").split(".")[0];
   const hasHyphenAbuse = (domainPart.match(/-/g) || []).length >= 2;
   const hasNumericPadding = /\d{4,}/.test(domainPart);
-  const isBrandImpersonator = /(amazon|apple|samsung|flipkart|myntra)[-.]/.test(hostname) && 
+  const isBrandImpersonator =
+    /(amazon|apple|samsung|flipkart|myntra)[-.]/.test(hostname) &&
     !/(amazon\.(com|in|co\.uk)|flipkart\.com|myntra\.com)/.test(hostname);
 
   if (isBrandImpersonator) {
     anomalies.push({
       type: "BRAND_IMPERSONATION",
-      detail: `Domain pattern mimics a trusted brand: ${hostname}`
+      detail: `Domain pattern mimics a trusted brand: ${hostname}`,
     });
     return 0.92;
   }
@@ -195,7 +208,7 @@ function addDomainSignals(data, anomalies) {
   if (hasHyphenAbuse || hasNumericPadding) {
     anomalies.push({
       type: "SUSPICIOUS_DOMAIN",
-      detail: `Domain exhibits structural anomalies typical of fraudulent storefronts: ${domain}`
+      detail: `Domain exhibits structural anomalies typical of fraudulent storefronts: ${domain}`,
     });
     return 0.55;
   }
@@ -209,19 +222,23 @@ function addMetadataSignals(data, anomalies) {
     risk += 0.3;
     anomalies.push({
       type: "METADATA_INCOMPLETE",
-      detail: "Insufficient product documentation or description"
+      detail: "Insufficient product documentation or description",
     });
   }
   return risk;
 }
 
-export function buildFeatures(input = {}) {
+import { getRealTimeBaseline } from "./marketData.mjs";
+
+export async function buildFeatures(input = {}) {
   const data = {
     ...input,
     title: String(input.title || "").trim(),
     sellerName: String(input.sellerName || "").trim(),
     description: String(input.description || "").trim(),
-    hostname: String(input.hostname || "").trim().toLowerCase(),
+    hostname: String(input.hostname || "")
+      .trim()
+      .toLowerCase(),
     price: Number(input.price || 0),
     originalPrice: Number(input.originalPrice || 0),
     discount: Number(input.discount || 0),
@@ -231,7 +248,9 @@ export function buildFeatures(input = {}) {
   };
 
   const category = detectCategory(data.title);
-  const ref = MARKET_REFERENCES[category] || MARKET_REFERENCES.default;
+  const fallbackRef = MARKET_REFERENCES[category] || MARKET_REFERENCES.default;
+  const ref = await getRealTimeBaseline(data.title, category, fallbackRef);
+  
   const anomalies = [];
   const discount = getDiscount(data);
 

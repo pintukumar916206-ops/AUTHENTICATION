@@ -21,20 +21,42 @@ async function getClient() {
     return _client;
   } catch (err) {
     console.error("[CORE] FATAL: Database connection failed.", err.message);
+    _client = null;
     throw new Error("[CORE] Database Connectivity Failure.");
   }
 }
 
 const DEFAULT_INTEL = {
   trusted_domains: [
-    "amazon.com", "amazon.in", "amazon.co.uk", "flipkart.com", "myntra.com",
-    "nykaa.com", "snapdeal.com", "walmart.com", "bestbuy.com", "target.com",
-    "apple.com", "samsung.com", "nike.com", "adidas.com", "adidas.co.in",
-    "zara.com", "hm.com", "meesho.com",
+    "amazon.com",
+    "amazon.in",
+    "amazon.co.uk",
+    "flipkart.com",
+    "myntra.com",
+    "nykaa.com",
+    "snapdeal.com",
+    "walmart.com",
+    "bestbuy.com",
+    "target.com",
+    "apple.com",
+    "samsung.com",
+    "nike.com",
+    "adidas.com",
+    "adidas.co.in",
+    "zara.com",
+    "hm.com",
+    "meesho.com",
   ],
   verified_sellers: [
-    "amazon", "cloudtail", "appario", "flipkart", "walmart", "best buy",
-    "authorized", "official", "genuine",
+    "amazon",
+    "cloudtail",
+    "appario",
+    "flipkart",
+    "walmart",
+    "best buy",
+    "authorized",
+    "official",
+    "genuine",
   ],
 };
 
@@ -60,17 +82,39 @@ class DataCore {
     this.isSynced = false;
   }
 
-  async initIntel() {
+  async ensureIndexes() {
     try {
       const client = await getClient();
       const db = client.db("authentiscan");
-      const doc = await db.collection("intelligence").findOne({ type: "global_feed" });
+      await Promise.all([
+        db.collection("users").createIndex({ email: 1 }),
+        db.collection("reports").createIndex({ userId: 1, savedAt: -1 }),
+        db.collection("reports").createIndex({ flagged: 1 }),
+        db.collection("reports").createIndex({ shareToken: 1 }),
+        db.collection("reports").createIndex({ "product.hostname": 1 }),
+        db.collection("jobs").createIndex({ status: 1, createdAt: 1 }),
+        db.collection("cache").createIndex({ url: 1 })
+      ]);
+      console.log("[CORE] Database indexes ensured successfully.");
+    } catch (err) {
+      console.error("[CORE] Error ensuring database indexes:", err.message);
+    }
+  }
+
+  async initIntel() {
+    await this.ensureIndexes();
+    try {
+      const client = await getClient();
+      const db = client.db("authentiscan");
+      const doc = await db
+        .collection("intelligence")
+        .findOne({ type: "global_feed" });
       if (doc) {
         this.intel = doc.data;
         console.log("[DB] Intel loaded from cache");
       }
-    } catch {
-      console.warn("[INTEL] Using default data (cache read failed)");
+    } catch (err) {
+      console.warn("[INTEL] Using default data (cache read failed):", err.message);
     }
   }
 
@@ -91,18 +135,25 @@ class DataCore {
       console.log("[INTEL] Synced with remote feed");
 
       const client = await getClient();
-      await client.db("authentiscan").collection("intelligence").updateOne(
-        { type: "global_feed" },
-        { $set: { data: freshData, syncedAt: new Date() } },
-        { upsert: true }
-      );
+      await client
+        .db("authentiscan")
+        .collection("intelligence")
+        .updateOne(
+          { type: "global_feed" },
+          { $set: { data: freshData, syncedAt: new Date() } },
+          { upsert: true },
+        );
     } catch {
       console.error("[INTEL] Remote sync failed. Sticking with current data.");
     }
   }
 
-  getTrustedDomains() { return this.intel.trusted_domains; }
-  getVerifiedSellers() { return this.intel.verified_sellers; }
+  getTrustedDomains() {
+    return this.intel.trusted_domains;
+  }
+  getVerifiedSellers() {
+    return this.intel.verified_sellers;
+  }
 
   async seedDemoUser() {
     try {
@@ -111,15 +162,28 @@ class DataCore {
 
       const bcrypt = await import("bcryptjs");
       const hash = await bcrypt.default.hash("Demo1234!", 12);
-      await this.createUser({ name: "Demo User", email: "demo@authentiscan.io", passwordHash: hash, role: "user" });
+      await this.createUser({
+        name: "Demo User",
+        email: "demo@authentiscan.io",
+        passwordHash: hash,
+        role: "user",
+      });
       console.log("[SEED] Demo user created: demo@authentiscan.io");
 
       const adminEmail = process.env.ADMIN_EMAIL;
       if (adminEmail) {
-        const adminHash = await bcrypt.default.hash(process.env.ADMIN_PASSWORD || "Admin1234!", 12);
+        const adminHash = await bcrypt.default.hash(
+          process.env.ADMIN_PASSWORD || "Admin1234!",
+          12,
+        );
         const adminExists = await this.findUserByEmail(adminEmail);
         if (!adminExists) {
-          await this.createUser({ name: "Admin", email: adminEmail, passwordHash: adminHash, role: "admin" });
+          await this.createUser({
+            name: "Admin",
+            email: adminEmail,
+            passwordHash: adminHash,
+            role: "admin",
+          });
           console.log(`[SEED] Admin user created: ${adminEmail}`);
         }
       }
@@ -132,8 +196,12 @@ class DataCore {
     const client = await getClient();
     const db = client.db("authentiscan");
     const result = await db.collection("users").insertOne({
-      name, email, passwordHash, role,
-      createdAt: new Date(), updatedAt: new Date(),
+      name,
+      email,
+      passwordHash,
+      role,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     return { _id: result.insertedId, name, email, role };
   }
@@ -152,19 +220,24 @@ class DataCore {
 
   async findUserByResetToken(token) {
     const client = await getClient();
-    return client.db("authentiscan").collection("users").findOne({ resetToken: token });
+    return client
+      .db("authentiscan")
+      .collection("users")
+      .findOne({ resetToken: token });
   }
 
   async updateUser(id, data) {
     const client = await getClient();
     const _id = toObjectId(id);
     if (!_id) return null;
-    const result = await client.db("authentiscan").collection("users").findOneAndUpdate(
-      { _id },
-      { $set: { ...data, updatedAt: new Date() } },
-      { returnDocument: "after" }
-    );
-    return result;
+    return await client
+      .db("authentiscan")
+      .collection("users")
+      .findOneAndUpdate(
+        { _id },
+        { $set: { ...data, updatedAt: new Date() } },
+        { returnDocument: "after" },
+      );
   }
 
   async getUsers({ page = 1, limit = 20 } = {}) {
@@ -174,7 +247,12 @@ class DataCore {
     const safeLimit = clampInt(limit, 20, 1, 100);
     const skip = (safePage - 1) * safeLimit;
     const [users, total] = await Promise.all([
-      col.find({}, { projection: { passwordHash: 0, resetToken: 0 } }).sort({ createdAt: -1 }).skip(skip).limit(safeLimit).toArray(),
+      col
+        .find({}, { projection: { passwordHash: 0, resetToken: 0 } })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(safeLimit)
+        .toArray(),
       col.countDocuments(),
     ]);
     return { users, total, page: safePage, limit: safeLimit };
@@ -185,7 +263,15 @@ class DataCore {
     const db = client.db("authentiscan");
     const result = await db.collection("reports").insertOne({
       ...report,
-      pinned: false, favorited: false, flagged: false, shareToken: null,
+      pinned: false,
+      favorited: false,
+      flagged: report.score < 50 || report.verdict === "FAKE",
+      moderationStatus: "PENDING",
+      internalNotes: "",
+      moderationHistory: [
+        { action: "AUTO_FLAG", note: "System flagged asset for low trust score.", timestamp: new Date() }
+      ],
+      shareToken: null,
       savedAt: new Date(),
     });
     return { ...report, _id: result.insertedId };
@@ -200,41 +286,129 @@ class DataCore {
 
   async getReportByShareToken(token) {
     const client = await getClient();
-    return client.db("authentiscan").collection("reports").findOne({ shareToken: token }, { projection: { userId: 0 } });
+    return client
+      .db("authentiscan")
+      .collection("reports")
+      .findOne({ shareToken: token }, { projection: { userId: 0 } });
   }
 
   async updateReport(id, data) {
     const client = await getClient();
     const _id = toObjectId(id);
     if (!_id) return null;
+    return await client
+      .db("authentiscan")
+      .collection("reports")
+      .findOneAndUpdate(
+        { _id },
+        { $set: { ...data, updatedAt: new Date() } },
+        { returnDocument: "after" },
+      );
+  }
+
+  async moderateReport(id, { status, notes, adminId, ip }) {
+    const client = await getClient();
+    const _id = toObjectId(id);
+    if (!_id) return null;
+
+    const historyEntry = {
+      status,
+      notes,
+      adminId,
+      timestamp: new Date()
+    };
+
     const result = await client.db("authentiscan").collection("reports").findOneAndUpdate(
       { _id },
-      { $set: { ...data, updatedAt: new Date() } },
+      { 
+        $set: { 
+          moderationStatus: status, 
+          internalNotes: notes,
+          flagged: status === "PENDING" || status === "FAKE",
+          updatedAt: new Date() 
+        },
+        $push: { moderationHistory: historyEntry }
+      },
       { returnDocument: "after" }
     );
+
+    if (result) {
+      await client.db("authentiscan").collection("audit_logs").insertOne({
+        adminId,
+        action: "MODERATE_REPORT",
+        targetId: _id,
+        details: { status, notes },
+        ip: ip || "unknown",
+        timestamp: new Date()
+      });
+    }
+
     return result;
   }
 
-  async deleteReport(id) {
+  async deleteReport(id, adminId, ip) {
     const client = await getClient();
     const _id = toObjectId(id);
     if (!_id) return;
     await client.db("authentiscan").collection("reports").deleteOne({ _id });
+
+    if (adminId) {
+      await client.db("authentiscan").collection("audit_logs").insertOne({
+        adminId,
+        action: "DELETE_REPORT",
+        targetId: _id,
+        ip: ip || "unknown",
+        timestamp: new Date()
+      });
+    }
   }
 
-  async getUserReports(userId, { page = 1, limit = 20, verdict, search, sort = "newest", pinned, favorited } = {}) {
+  async getAuditLogs({ page = 1, limit = 50 } = {}) {
+    const client = await getClient();
+    const col = client.db("authentiscan").collection("audit_logs");
+    const safePage = clampInt(page, 1, 1, 10000);
+    const safeLimit = clampInt(limit, 50, 1, 200);
+    const skip = (safePage - 1) * safeLimit;
+    
+    const [logs, total] = await Promise.all([
+      col.find({}).sort({ timestamp: -1 }).skip(skip).limit(safeLimit).toArray(),
+      col.countDocuments(),
+    ]);
+    return { logs, total, page: safePage, limit: safeLimit };
+  }
+
+  async getUserReports(
+    userId,
+    {
+      page = 1,
+      limit = 20,
+      verdict,
+      search,
+      sort = "newest",
+      pinned,
+      favorited,
+    } = {},
+  ) {
     const client = await getClient();
     const col = client.db("authentiscan").collection("reports");
 
     const safePage = clampInt(page, 1, 1, 10000);
     const safeLimit = clampInt(limit, 20, 1, 50);
     const filter = { userId };
-    if (["GENUINE", "SUSPICIOUS", "FAKE", "UNVERIFIABLE"].includes(String(verdict).toUpperCase())) {
+    if (
+      ["GENUINE", "SUSPICIOUS", "FAKE", "UNVERIFIABLE"].includes(
+        String(verdict).toUpperCase(),
+      )
+    ) {
       filter.verdict = String(verdict).toUpperCase();
     }
     if (pinned !== undefined) filter.pinned = pinned;
     if (favorited !== undefined) filter.favorited = favorited;
-    if (search) filter["product.title"] = { $regex: escapeRegex(String(search).trim().slice(0, 80)), $options: "i" };
+    if (search)
+      filter["product.title"] = {
+        $regex: escapeRegex(String(search).trim().slice(0, 80)),
+        $options: "i",
+      };
 
     const sortMap = {
       newest: { savedAt: -1 },
@@ -245,31 +419,50 @@ class DataCore {
     const safeSort = sortMap[sort] ? sort : "newest";
     const skip = (safePage - 1) * safeLimit;
     const [reports, total] = await Promise.all([
-      col.find(filter, { projection: { "product.html": 0 } }).sort(sortMap[safeSort]).skip(skip).limit(safeLimit).toArray(),
+      col
+        .find(filter, { projection: { "product.html": 0 } })
+        .sort(sortMap[safeSort])
+        .skip(skip)
+        .limit(safeLimit)
+        .toArray(),
       col.countDocuments(filter),
     ]);
-    return { reports, total, page: safePage, limit: safeLimit, totalPages: Math.ceil(total / safeLimit) };
+    return {
+      reports,
+      total,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit),
+    };
   }
 
   async getUserStats(userId) {
     const client = await getClient();
     const col = client.db("authentiscan").collection("reports");
 
-    const stats = await col.aggregate([
-      { $match: { userId } },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: 1 },
-          avgScore: { $avg: "$score" },
-          genuine: { $sum: { $cond: [{ $eq: ["$verdict", "GENUINE"] }, 1, 0] } },
-          suspicious: { $sum: { $cond: [{ $eq: ["$verdict", "SUSPICIOUS"] }, 1, 0] } },
-          fake: { $sum: { $cond: [{ $eq: ["$verdict", "FAKE"] }, 1, 0] } },
+    const stats = await col
+      .aggregate([
+        { $match: { userId } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            avgScore: { $avg: "$score" },
+            genuine: {
+              $sum: { $cond: [{ $eq: ["$verdict", "GENUINE"] }, 1, 0] },
+            },
+            suspicious: {
+              $sum: { $cond: [{ $eq: ["$verdict", "SUSPICIOUS"] }, 1, 0] },
+            },
+            fake: { $sum: { $cond: [{ $eq: ["$verdict", "FAKE"] }, 1, 0] } },
+          },
         },
-      },
-    ]).toArray();
+      ])
+      .toArray();
 
-    return stats[0] || { total: 0, avgScore: 0, genuine: 0, suspicious: 0, fake: 0 };
+    return (
+      stats[0] || { total: 0, avgScore: 0, genuine: 0, suspicious: 0, fake: 0 }
+    );
   }
 
   async getPlatformStats() {
@@ -277,23 +470,40 @@ class DataCore {
     const db = client.db("authentiscan");
 
     const [reportStats, userCount, flaggedCount] = await Promise.all([
-      db.collection("reports").aggregate([
-        {
-          $group: {
-            _id: null,
-            total: { $sum: 1 },
-            avgScore: { $avg: "$score" },
-            genuine: { $sum: { $cond: [{ $eq: ["$verdict", "GENUINE"] }, 1, 0] } },
-            suspicious: { $sum: { $cond: [{ $eq: ["$verdict", "SUSPICIOUS"] }, 1, 0] } },
-            fake: { $sum: { $cond: [{ $eq: ["$verdict", "FAKE"] }, 1, 0] } },
+      db
+        .collection("reports")
+        .aggregate([
+          {
+            $group: {
+              _id: null,
+              total: { $sum: 1 },
+              avgScore: { $avg: "$score" },
+              genuine: {
+                $sum: { $cond: [{ $eq: ["$verdict", "GENUINE"] }, 1, 0] },
+              },
+              suspicious: {
+                $sum: { $cond: [{ $eq: ["$verdict", "SUSPICIOUS"] }, 1, 0] },
+              },
+              fake: { $sum: { $cond: [{ $eq: ["$verdict", "FAKE"] }, 1, 0] } },
+            },
           },
-        },
-      ]).toArray(),
+        ])
+        .toArray(),
       db.collection("users").countDocuments(),
       db.collection("reports").countDocuments({ flagged: true }),
     ]);
 
-    return { ...(reportStats[0] || { total: 0, avgScore: 0, genuine: 0, suspicious: 0, fake: 0 }), userCount, flaggedCount };
+    return {
+      ...(reportStats[0] || {
+        total: 0,
+        avgScore: 0,
+        genuine: 0,
+        suspicious: 0,
+        fake: 0,
+      }),
+      userCount,
+      flaggedCount,
+    };
   }
 
   async getFlaggedReports({ page = 1, limit = 20 } = {}) {
@@ -303,7 +513,12 @@ class DataCore {
     const safeLimit = clampInt(limit, 20, 1, 100);
     const skip = (safePage - 1) * safeLimit;
     const [reports, total] = await Promise.all([
-      col.find({ flagged: true }, { projection: { "product.html": 0 } }).sort({ flaggedAt: -1 }).skip(skip).limit(safeLimit).toArray(),
+      col
+        .find({ flagged: true }, { projection: { "product.html": 0 } })
+        .sort({ flaggedAt: -1 })
+        .skip(skip)
+        .limit(safeLimit)
+        .toArray(),
       col.countDocuments({ flagged: true }),
     ]);
     return { reports, total, page: safePage, limit: safeLimit };
@@ -313,8 +528,13 @@ class DataCore {
     try {
       const client = await getClient();
       const col = client.db("authentiscan").collection("reports");
-      return await col.find({}, { projection: { _id: 0, "product.html": 0 } }).sort({ savedAt: -1 }).limit(limit).toArray();
-    } catch {
+      return await col
+        .find({}, { projection: { _id: 0, "product.html": 0 } })
+        .sort({ savedAt: -1 })
+        .limit(limit)
+        .toArray();
+    } catch (err) {
+      console.error("[CORE] Error retrieving reports:", err.message);
       return [];
     }
   }
@@ -335,8 +555,14 @@ class DataCore {
 
     const threshold = new Date(Date.now() - timeoutMinutes * 60 * 1000);
     const result = await col.updateMany(
-      { status: { $in: ["CLAIMED", "PROCESSING_CAPTURE", "PROCESSING_NEURAL"] }, updatedAt: { $lt: threshold } },
-      { $set: { status: "PENDING", updatedAt: new Date() }, $push: { logs: "RECOVERY_DAEMON: Job reset due to timeout." } }
+      {
+        status: { $in: ["CLAIMED", "PROCESSING_CAPTURE", "PROCESSING_NEURAL"] },
+        updatedAt: { $lt: threshold },
+      },
+      {
+        $set: { status: "PENDING", updatedAt: new Date() },
+        $push: { logs: "RECOVERY_DAEMON: Job reset due to timeout." },
+      },
     );
 
     if (result.matchedCount > 0) {
@@ -352,8 +578,12 @@ class DataCore {
   async addJob(url, userId = null) {
     const col = await this.getJobsCollection();
     const result = await col.insertOne({
-      url, userId, status: "PENDING", logs: ["JOB_CREATED"],
-      createdAt: new Date(), updatedAt: new Date(),
+      url,
+      userId,
+      status: "PENDING",
+      logs: ["JOB_CREATED"],
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     return result.insertedId;
   }
@@ -369,12 +599,12 @@ class DataCore {
     }
   }
 
-  async claimJob() {
+  async claimJob(workerId = "unknown-worker") {
     const col = await this.getJobsCollection();
     return await col.findOneAndUpdate(
       { status: "PENDING" },
-      { $set: { status: "CLAIMED", updatedAt: new Date() } },
-      { sort: { createdAt: 1 }, returnDocument: "after" }
+      { $set: { status: "CLAIMED", claimedBy: workerId, updatedAt: new Date() } },
+      { sort: { createdAt: 1 }, returnDocument: "after" },
     );
   }
 
@@ -385,7 +615,10 @@ class DataCore {
     const { log, ...rest } = data;
     await col.updateOne(
       { _id },
-      { $set: { ...rest, updatedAt: new Date() }, ...(log ? { $push: { logs: log } } : {}) }
+      {
+        $set: { ...rest, updatedAt: new Date() },
+        ...(log ? { $push: { logs: log } } : {}),
+      },
     );
   }
 
@@ -393,12 +626,24 @@ class DataCore {
     try {
       const client = await getClient();
       const col = client.db("authentiscan").collection("reports");
-      const stats = await col.aggregate([
-        { $match: { "product.hostname": hostname } },
-        { $group: { _id: "$product.hostname", avgScore: { $avg: "$score" }, maxScore: { $max: "$score" }, avgPrice: { $avg: "$product.price" }, minPrice: { $min: "$product.price" }, scanCount: { $sum: 1 } } },
-      ]).toArray();
+      const stats = await col
+        .aggregate([
+          { $match: { "product.hostname": hostname } },
+          {
+            $group: {
+              _id: "$product.hostname",
+              avgScore: { $avg: "$score" },
+              maxScore: { $max: "$score" },
+              avgPrice: { $avg: "$product.price" },
+              minPrice: { $min: "$product.price" },
+              scanCount: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray();
       return stats[0] || null;
-    } catch {
+    } catch (err) {
+      console.error("[CORE] Error getting host stats:", err.message);
       return null;
     }
   }
@@ -409,7 +654,8 @@ class DataCore {
       const col = client.db("authentiscan").collection("cache");
       const cached = await col.findOne({ url }, { projection: { _id: 0 } });
       return cached?.result || cached || null;
-    } catch {
+    } catch (err) {
+      console.error("[CORE] Error getting cached result:", err.message);
       return null;
     }
   }
@@ -421,7 +667,7 @@ class DataCore {
       await col.updateOne(
         { url },
         { $set: { url, result, cachedAt: new Date() } },
-        { upsert: true }
+        { upsert: true },
       );
     } catch {
       console.error("[CORE-CACHE] Save failed.");

@@ -73,6 +73,16 @@ const analyzeLimiter = rateLimit({
   },
 });
 
+// Tighter rate limiter for sensitive authentication endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: {
+    error: "TOO_MANY_REQUESTS",
+    message: "Authentication limit reached. Please wait 15 minutes.",
+  },
+});
+
 app.get("/health", (req, res) =>
   res
     .status(200)
@@ -89,13 +99,17 @@ app.get("/api/share/:token", async (req, res) => {
   }
 });
 
-app.use("/api/auth", authRouter);
+app.use("/api/auth", authLimiter, authRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/compare", compareRouter);
 app.use("/api/admin", adminRouter);
 
 (async () => {
   console.log("[BOOT] Calibrating Forensic Intel...");
+  if (!process.env.JWT_SECRET) {
+    console.error("[CRITICAL] JWT_SECRET is not configured.");
+    process.exit(1);
+  }
   await core.initIntel();
   await core.syncIntel();
   await core.seedDemoUser();

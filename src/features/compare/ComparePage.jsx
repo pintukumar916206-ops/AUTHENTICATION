@@ -5,17 +5,36 @@ import { api } from "../../services/api";
 import Button from "../../shared/Button";
 import Badge from "../../shared/Badge";
 import useUIStore from "../../store/uiStore";
-import { ShieldCheck, ShieldAlert, AlertTriangle, Trophy, Minus, Activity } from "lucide-react";
+import {
+  ShieldCheck,
+  ShieldAlert,
+  AlertTriangle,
+  Trophy,
+  Minus,
+  Activity,
+  ChevronRight,
+  Scale,
+} from "lucide-react";
 import "../../styles/dashboard.css";
 
 function ScoreBar({ score }) {
-  const color = score >= 70 ? "var(--success)" : score >= 40 ? "var(--warning)" : "var(--error)";
+  const color =
+    score >= 70
+      ? "var(--success)"
+      : score >= 40
+        ? "var(--warning)"
+        : "var(--error)";
   return (
     <div className="compare-score-bar-wrap">
       <div className="compare-score-bar-bg">
-        <div className="compare-score-bar-fill" style={{ width: `${score}%`, background: color }} />
+        <div
+          className="compare-score-bar-fill"
+          style={{ width: `${score}%`, background: color }}
+        />
       </div>
-      <span className="compare-score-num" style={{ color }}>{score}%</span>
+      <span className="compare-score-num" style={{ color }}>
+        {score}%
+      </span>
     </div>
   );
 }
@@ -24,84 +43,92 @@ function SidePanel({ data, winner, side }) {
   const isWinner = winner === side;
   const isTie = winner === "tie";
 
-  const verdictIcon = data.verdict === "GENUINE"
-    ? <ShieldCheck size={20} className="txt-genuine" />
-    : data.verdict === "FAKE"
-    ? <ShieldAlert size={20} className="txt-fake" />
-    : <AlertTriangle size={20} className="txt-suspicious" />;
+  const verdictIcon =
+    data.verdict === "GENUINE" ? (
+      <ShieldCheck size={20} className="txt-genuine" />
+    ) : data.verdict === "FAKE" ? (
+      <ShieldAlert size={20} className="txt-fake" />
+    ) : (
+      <AlertTriangle size={20} className="txt-suspicious" />
+    );
 
   return (
     <div className={`compare-panel ${isWinner ? "compare-panel-winner" : ""}`}>
       {isWinner && (
         <div className="compare-winner-badge">
-          <Trophy size={12} /> Higher Trust
+          <Trophy size={12} /> HIGHER INTEGRITY
         </div>
       )}
       {isTie && (
         <div className="compare-tie-badge">
-          <Minus size={12} /> Tied
+          <Minus size={12} /> EQUAL RISK
         </div>
       )}
       <div className="compare-panel-verdict">
         {verdictIcon}
         <Badge verdict={data.verdict} />
       </div>
-      <h3 className="compare-panel-title" title={data.title}>{data.title}</h3>
-      <span className="compare-panel-host">{data.hostname || "Unknown"}</span>
+      <h3 className="compare-panel-title" title={data.title}>
+        {data.title}
+      </h3>
+      <span className="compare-panel-host">
+        {data.hostname || "Unknown Storefront"}
+      </span>
 
       <ScoreBar score={data.score || 0} />
 
       <div className="compare-panel-meta">
         <div className="compare-meta-row">
-          <span className="compare-meta-label">Confidence</span>
+          <span className="compare-meta-label">Forensic Confidence</span>
           <span className="compare-meta-val">{data.confidence}%</span>
         </div>
-        {data.price > 0 && (
-          <div className="compare-meta-row">
-            <span className="compare-meta-label">Price</span>
-            <span className="compare-meta-val">₹{data.price?.toLocaleString()}</span>
-          </div>
-        )}
         <div className="compare-meta-row">
-          <span className="compare-meta-label">Risk Signals</span>
-          <span className="compare-meta-val">{data.risk_signals?.length || 0}</span>
+          <span className="compare-meta-label">Calculated Price</span>
+          <span className="compare-meta-val">
+            ₹{data.price?.toLocaleString()}
+          </span>
         </div>
       </div>
-
-      <div className="compare-summary">{data.summary}</div>
     </div>
   );
 }
 
-function DeltaAnalysis({ result }) {
-  const { a, b, winner, scoreGap } = result;
-  
-  if (winner === "tie") return (
-    <div className="compare-delta-banner tie">
-      <div className="delta-icon"><Minus size={24} /></div>
-      <div className="delta-content">
-        <h3>Forensic Deadlock: Identical Risk Profiles Detected</h3>
-        <p>Both assets present a Trust Score of {a.score}. We recommend treating both targets as high-risk until manual verification of seller metadata can be performed.</p>
+function DecisionLayer({ result }) {
+  const { a, b, winner } = result;
+
+  if (winner === "tie")
+    return (
+      <div className="compare-delta-banner tie">
+        <Scale size={24} />
+        <div className="delta-content">
+          <h3>Forensic Deadlock: Identical Risk Profiles</h3>
+          <p>
+            No statistical differentiation found between targets. Both listings
+            exhibit a Trust Score of {a.score}%. Procurement is not advised for
+            either asset.
+          </p>
+        </div>
       </div>
-    </div>
-  );
+    );
 
   const winningData = winner === "a" ? a : b;
   const losingData = winner === "a" ? b : a;
-  
-  // Determine strongest negative factor for the losing side
-  const losingWorstSignal = losingData.risk_signals && losingData.risk_signals.length > 0 
-    ? losingData.risk_signals.reduce((max, obj) => (max.pts > obj.pts) ? max : obj).label 
-    : "Unknown vulnerabilities";
+  const trustDelta = Math.abs(a.score - b.score);
 
   return (
     <div className={`compare-delta-banner ${winner}`}>
-      <div className="delta-icon"><ShieldCheck size={24} /></div>
+      <Trophy size={24} />
       <div className="delta-content">
-        <h3>{winningData.hostname || "Target A"} exhibits {scoreGap}pts less risk exposure</h3>
+        <h3>{winningData.hostname} is the safer procurement path</h3>
         <p>
-          <strong>Primary Advantage:</strong> {winningData.score > losingData.score ? "Stronger seller reputation and pricing integrity. " : "Standardized market documentation. "}
-          Conversely, the competing asset is heavily penalized due to <strong>{losingWorstSignal}</strong>.
+          Detected a <strong>{trustDelta}% Trust Delta</strong> between targets.
+          {winningData.hostname} maintains superior signal alignment,
+          specifically in{" "}
+          {winningData.score > losingData.score
+            ? "merchant legitimacy"
+            : "price stability"}
+          . In contrast, {losingData.hostname} displays anomalies that correlate
+          with high-risk operations.
         </p>
       </div>
     </div>
@@ -110,20 +137,50 @@ function DeltaAnalysis({ result }) {
 
 function ComparisonTable({ a, b }) {
   const rows = [
-    { label: "Trust Score", valA: `${a.score}%`, valB: `${b.score}%`, win: a.score > b.score ? "a" : (a.score < b.score ? "b" : "tie") },
-    { label: "Confidence", valA: `${a.confidence}%`, valB: `${b.confidence}%`, win: a.confidence > b.confidence ? "a" : (a.confidence < b.confidence ? "b" : "tie") },
-    { label: "Price", valA: `₹${a.price?.toLocaleString()}`, valB: `₹${b.price?.toLocaleString()}`, win: a.price > b.price ? "tie" : "tie" }, // Price win is subjective
-    { label: "Deductions", valA: a.risk_signals?.length || 0, valB: b.risk_signals?.length || 0, win: (a.risk_signals?.length || 0) < (b.risk_signals?.length || 0) ? "a" : "b" },
+    {
+      label: "Trust Score",
+      valA: `${a.score}%`,
+      valB: `${b.score}%`,
+      win: a.score > b.score ? "a" : a.score < b.score ? "b" : "tie",
+    },
+    {
+      label: "Confidence",
+      valA: `${a.confidence}%`,
+      valB: `${b.confidence}%`,
+      win:
+        a.confidence > b.confidence
+          ? "a"
+          : a.confidence < b.confidence
+            ? "b"
+            : "tie",
+    },
+    {
+      label: "Price Stability",
+      valA: a.priceRisk > 0.5 ? "Low" : "High",
+      valB: b.priceRisk > 0.5 ? "Low" : "High",
+      win:
+        a.priceRisk < b.priceRisk
+          ? "a"
+          : a.priceRisk > b.priceRisk
+            ? "b"
+            : "tie",
+    },
+    {
+      label: "Risk Deductions",
+      valA: a.risk_signals?.length || 0,
+      valB: b.risk_signals?.length || 0,
+      win:
+        (a.risk_signals?.length || 0) < (b.risk_signals?.length || 0)
+          ? "a"
+          : "b",
+    },
   ];
 
   return (
     <div className="compare-table-wrap report-card">
       <div className="bl-header" style={{ marginBottom: 20 }}>
-        <Activity size={13} /> <span>HEAD-TO-HEAD TECHNICAL AUDIT</span>
+        <Activity size={13} /> <span>HEAD-TO-HEAD AUDIT</span>
       </div>
-      <p style={{ fontSize: '0.85rem', color: 'var(--text-grey)', marginBottom: '16px' }}>
-        A direct comparison of forensic metadata. Note that confidence levels dictate the reliability of the Trust Score.
-      </p>
       <table className="compare-table">
         <thead>
           <tr>
@@ -136,8 +193,12 @@ function ComparisonTable({ a, b }) {
           {rows.map((row, i) => (
             <tr key={i}>
               <td className="row-label">{row.label}</td>
-              <td className={`row-val ${row.win === "a" ? "win" : ""}`}>{row.valA}</td>
-              <td className={`row-val ${row.win === "b" ? "win" : ""}`}>{row.valB}</td>
+              <td className={`row-val ${row.win === "a" ? "win" : ""}`}>
+                {row.valA}
+              </td>
+              <td className={`row-val ${row.win === "b" ? "win" : ""}`}>
+                {row.valB}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -163,18 +224,24 @@ export default function ComparePage() {
 
   const handleCompare = (e) => {
     e.preventDefault();
-    if (!inputA.trim() || !inputB.trim()) { addToast("Both fields are required", "warning"); return; }
-    const payload = mode === "ids"
-      ? { reportIdA: inputA.trim(), reportIdB: inputB.trim() }
-      : { urlA: inputA.trim(), urlB: inputB.trim() };
+    if (!inputA.trim() || !inputB.trim()) {
+      addToast("Inputs required", "warning");
+      return;
+    }
+    const payload =
+      mode === "ids"
+        ? { reportIdA: inputA.trim(), reportIdB: inputB.trim() }
+        : { urlA: inputA.trim(), urlB: inputB.trim() };
     compare.mutate(payload);
   };
 
   return (
-    <div className="compare-page" style={{ padding: '40px 60px' }}>
+    <div className="compare-page">
       <header className="compare-header">
-        <h1 className="compare-title">Forensic Comparison</h1>
-        <p className="compare-sub">Deep-packet trust analysis across multiple storefronts</p>
+        <h1 className="compare-title">Forensic Comparison Engine</h1>
+        <p className="compare-sub">
+          Multi-source trust reconciliation and procurement decisioning
+        </p>
       </header>
 
       <div className="compare-mode-tabs">
@@ -188,35 +255,27 @@ export default function ComparePage() {
           className={`compare-tab ${mode === "urls" ? "compare-tab-active" : ""}`}
           onClick={() => setMode("urls")}
         >
-          By URL (Live Scan)
+          By Live URL
         </button>
       </div>
 
       <form className="compare-form" onSubmit={handleCompare}>
         <div className="compare-inputs">
           <div className="compare-input-group">
-            <label className="compare-label">
-              {mode === "ids" ? "Report A — ID" : "Product A — URL"}
-            </label>
             <input
-              id="compare-input-a"
               className="compare-input"
               type="text"
-              placeholder={mode === "ids" ? "Report ObjectId..." : "https://..."}
+              placeholder={mode === "ids" ? "Report ID A" : "URL A"}
               value={inputA}
               onChange={(e) => setInputA(e.target.value)}
             />
           </div>
           <div className="compare-vs">VS</div>
           <div className="compare-input-group">
-            <label className="compare-label">
-              {mode === "ids" ? "Report B — ID" : "Product B — URL"}
-            </label>
             <input
-              id="compare-input-b"
               className="compare-input"
               type="text"
-              placeholder={mode === "ids" ? "Report ObjectId..." : "https://..."}
+              placeholder={mode === "ids" ? "Report ID B" : "URL B"}
               value={inputB}
               onChange={(e) => setInputB(e.target.value)}
             />
@@ -230,29 +289,29 @@ export default function ComparePage() {
           loading={compare.isPending}
           className="compare-submit"
         >
-          Initiate Forensic Match
+          Execute Forensic Match
         </Button>
       </form>
 
       {result && (
         <div className="compare-result anim-entry">
-          <DeltaAnalysis result={result} />
-          
+          <DecisionLayer result={result} />
+
           <div className="compare-panels">
             <SidePanel data={result.a} winner={result.winner} side="a" />
             <SidePanel data={result.b} winner={result.winner} side="b" />
           </div>
 
           <ComparisonTable a={result.a} b={result.b} />
-          
+
           <div className="compare-recommendation report-card">
             <div className="bl-header">
-              <Trophy size={13} /> <span>OPERATIONAL RECOMMENDATION</span>
+              <ShieldCheck size={13} /> <span>OPERATIONAL DIRECTIVE</span>
             </div>
             <p className="recommendation-text">
-              {result.winner === "tie" 
-                ? "Both assets carry equal risk exposure. We strongly advise against engaging with either listing until further seller verification is performed."
-                : `Based on deterministic forensic signals, ${result.winner === "a" ? result.a.hostname || "Target A" : result.b.hostname || "Target B"} is the statistically safer choice. The losing listing displays critical anomalies that align with known fraudulent operations.`}
+              {result.winner === "tie"
+                ? "Risk parity detected. We advise against procurement from either storefront. Mathematical delta is zero."
+                : `Procurement Priority: ${result.winner === "a" ? result.a.hostname : result.b.hostname}. The target exhibits superior signal integrity and merchant verification levels.`}
             </p>
           </div>
         </div>

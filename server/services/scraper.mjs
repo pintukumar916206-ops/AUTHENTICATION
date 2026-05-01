@@ -5,10 +5,19 @@ import fs from "fs/promises";
 import path from "path";
 import { config } from "./config.mjs";
 import { validateScanUrl } from "./urlSafety.mjs";
+import { extractProductDataLLM } from "./llmParser.mjs";
 
-chromium.use(StealthPlugin());
+const stealth = StealthPlugin();
+// Advanced Stealth: Remove webdriver flag
+stealth.enabledEvasions.delete('user-agent-override'); 
+chromium.use(stealth);
 
-// --- Scraper Adapter Pattern ---
+const USER_AGENTS = [
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/122.0.0.0",
+];
+
 
 class BaseScraperAdapter {
   constructor(page) {
@@ -23,8 +32,10 @@ class BaseScraperAdapter {
     for (const s of selectors) {
       try {
         const el = this.page.locator(s).first();
-        if (await el.count() > 0) {
-          const text = s.startsWith('meta') ? await el.getAttribute('content') : await el.textContent();
+        if ((await el.count()) > 0) {
+          const text = s.startsWith("meta")
+            ? await el.getAttribute("content")
+            : await el.textContent();
           if (text?.trim()) return text.trim();
         }
       } catch {}
@@ -67,16 +78,39 @@ class BaseScraperAdapter {
 class AmazonAdapter extends BaseScraperAdapter {
   async scrape() {
     const raw = {
-      title: await this.getFirstWorking(['#productTitle', 'h1', '#title']),
-      price: await this.getPrice(['.a-price-whole', '#priceblock_ourprice', '.a-offscreen']),
-      originalPrice: await this.getPrice(['.a-price.a-text-price .a-offscreen', 'span[data-a-strike="true"]']),
-      discount: await this.getNumber(['.savingsPercentage', 'text=/off/i']),
-      rating: await this.getNumber(['span[data-hook="rating-out-of-five"]', '.a-icon-alt']),
-      reviewCount: await this.getNumber(['#acrCustomerReviewText', 'span[data-hook="total-review-count"]']),
-      sellerName: await this.getFirstWorking(['#sellerProfileTriggerId', '#merchant-info a', 'text=/Sold by/i']),
-      sellerRating: await this.getNumber(['#sellerProfileTriggerId']),
-      availability: await this.getFirstWorking(['#availability span', 'text=/In Stock|Out of Stock/i']),
-      description: await this.getFirstWorking(['#productDescription p', '#feature-bullets li']),
+      title: await this.getFirstWorking(["#productTitle", "h1", "#title"]),
+      price: await this.getPrice([
+        ".a-price-whole",
+        "#priceblock_ourprice",
+        ".a-offscreen",
+      ]),
+      originalPrice: await this.getPrice([
+        ".a-price.a-text-price .a-offscreen",
+        'span[data-a-strike="true"]',
+      ]),
+      discount: await this.getNumber([".savingsPercentage", "text=/off/i"]),
+      rating: await this.getNumber([
+        'span[data-hook="rating-out-of-five"]',
+        ".a-icon-alt",
+      ]),
+      reviewCount: await this.getNumber([
+        "#acrCustomerReviewText",
+        'span[data-hook="total-review-count"]',
+      ]),
+      sellerName: await this.getFirstWorking([
+        "#sellerProfileTriggerId",
+        "#merchant-info a",
+        "text=/Sold by/i",
+      ]),
+      sellerRating: await this.getNumber(["#sellerProfileTriggerId"]),
+      availability: await this.getFirstWorking([
+        "#availability span",
+        "text=/In Stock|Out of Stock/i",
+      ]),
+      description: await this.getFirstWorking([
+        "#productDescription p",
+        "#feature-bullets li",
+      ]),
     };
     return this.normalize(raw);
   }
@@ -85,16 +119,45 @@ class AmazonAdapter extends BaseScraperAdapter {
 class FlipkartAdapter extends BaseScraperAdapter {
   async scrape() {
     const raw = {
-      title: await this.getFirstWorking(['span.B_NuCI', 'h1[class*="title"]', 'meta[property="og:title"]']),
-      price: await this.getPrice(['div._30jeq3._16Jk6d', 'div._30jeq3', '[class*="_30jeq3"]']),
-      originalPrice: await this.getPrice(['div._3I9_wc._2p6lqe', 'div._3I9_wc', 'strike']),
-      discount: await this.getNumber(['div._3Ay6Sb._31Dcoz span', '[class*="_3Ay6Sb"]']),
-      rating: await this.getNumber(['div._3LWZlK', 'div._2d4LTz']),
-      reviewCount: await this.getNumber(['span._2_R_DZ', 'span[class*="_2_R_DZ"]']),
-      sellerName: await this.getFirstWorking(['div._1RrHR7 a', 'div._29NdF1 a', 'text=/Sold by/i']),
-      sellerRating: 0,
-      availability: await this.getFirstWorking(['div._1gcUFk', 'text=/In Stock|Out of Stock/i']),
-      description: await this.getFirstWorking(['div._1mXcCf p', 'div._1AN87F', 'meta[name="description"]']),
+      title: await this.getFirstWorking([
+        "span.B_NuCI",
+        'h1[class*="title"]',
+        'meta[property="og:title"]',
+      ]),
+      price: await this.getPrice([
+        "div._30jeq3._16Jk6d",
+        "div._30jeq3",
+        '[class*="_30jeq3"]',
+      ]),
+      originalPrice: await this.getPrice([
+        "div._3I9_wc._2p6lqe",
+        "div._3I9_wc",
+        "strike",
+      ]),
+      discount: await this.getNumber([
+        "div._3Ay6Sb._31Dcoz span",
+        '[class*="_3Ay6Sb"]',
+      ]),
+      rating: await this.getNumber(["div._3LWZlK", "div._2d4LTz"]),
+      reviewCount: await this.getNumber([
+        "span._2_R_DZ",
+        'span[class*="_2_R_DZ"]',
+      ]),
+      sellerName: await this.getFirstWorking([
+        "div._1RrHR7 a",
+        "div._29NdF1 a",
+        "text=/Sold by/i",
+      ]),
+      sellerRating: await this.getNumber(["div._3LWZlK[class*='_3G6tW3']", "div._3LWZlK"]),
+      availability: await this.getFirstWorking([
+        "div._1gcUFk",
+        "text=/In Stock|Out of Stock/i",
+      ]),
+      description: await this.getFirstWorking([
+        "div._1mXcCf p",
+        "div._1AN87F",
+        'meta[name="description"]',
+      ]),
     };
     return this.normalize(raw);
   }
@@ -103,16 +166,43 @@ class FlipkartAdapter extends BaseScraperAdapter {
 class GenericAdapter extends BaseScraperAdapter {
   async scrape() {
     const raw = {
-      title: await this.getFirstWorking(['[itemprop="name"]', 'h1', 'meta[property="og:title"]']),
-      price: await this.getPrice(['[itemprop="price"]', '[class*="price"]', 'meta[property="product:price:amount"]']),
-      originalPrice: await this.getPrice(['[class*="original"]', 'strike', 'del']),
-      discount: await this.getNumber(['[class*="discount"]', 'text=/% off/i']),
-      rating: await this.getNumber(['[itemprop="ratingValue"]', '[class*="rating"]']),
-      reviewCount: await this.getNumber(['[itemprop="reviewCount"]', 'text=/reviews/i']),
-      sellerName: await this.getFirstWorking(['[itemprop="seller"]', 'text=/Sold by|Vendor:/i']),
+      title: await this.getFirstWorking([
+        '[itemprop="name"]',
+        "h1",
+        'meta[property="og:title"]',
+      ]),
+      price: await this.getPrice([
+        '[itemprop="price"]',
+        '[class*="price"]',
+        'meta[property="product:price:amount"]',
+      ]),
+      originalPrice: await this.getPrice([
+        '[class*="original"]',
+        "strike",
+        "del",
+      ]),
+      discount: await this.getNumber(['[class*="discount"]', "text=/% off/i"]),
+      rating: await this.getNumber([
+        '[itemprop="ratingValue"]',
+        '[class*="rating"]',
+      ]),
+      reviewCount: await this.getNumber([
+        '[itemprop="reviewCount"]',
+        "text=/reviews/i",
+      ]),
+      sellerName: await this.getFirstWorking([
+        '[itemprop="seller"]',
+        "text=/Sold by|Vendor:/i",
+      ]),
       sellerRating: 0,
-      availability: await this.getFirstWorking(['[itemprop="availability"]', 'text=/In Stock|Out of Stock/i']),
-      description: await this.getFirstWorking(['[itemprop="description"]', 'meta[name="description"]']),
+      availability: await this.getFirstWorking([
+        '[itemprop="availability"]',
+        "text=/In Stock|Out of Stock/i",
+      ]),
+      description: await this.getFirstWorking([
+        '[itemprop="description"]',
+        'meta[name="description"]',
+      ]),
     };
     return this.normalize(raw);
   }
@@ -121,7 +211,7 @@ class GenericAdapter extends BaseScraperAdapter {
 export const SCRAPER_HEALTH = {
   amazon: { success: 0, fail: 0 },
   flipkart: { success: 0, fail: 0 },
-  generic: { success: 0, fail: 0 }
+  generic: { success: 0, fail: 0 },
 };
 
 let _healthDb = null;
@@ -150,36 +240,52 @@ async function persistScraperHealth() {
     if (!col) return;
     await col.updateOne(
       { type: "health_snapshot" },
-      { $set: { type: "health_snapshot", data: SCRAPER_HEALTH, updatedAt: new Date() } },
-      { upsert: true }
+      {
+        $set: {
+          type: "health_snapshot",
+          data: SCRAPER_HEALTH,
+          updatedAt: new Date(),
+        },
+      },
+      { upsert: true },
     );
-  } catch {
-    // Non-critical — health stats are best-effort
+    } catch {
+    }
   }
-}
 
 let _healthOps = 0;
 
 async function logScraperFailure(page, platform) {
   try {
     const timestamp = Date.now();
-    const logDir = path.join(process.cwd(), 'failure_logs');
+    const logDir = path.join(process.cwd(), "failure_logs");
     await fs.mkdir(logDir, { recursive: true });
-    
-    await page.screenshot({ path: path.join(logDir, `fail_${platform}_${timestamp}.png`) });
+
+    await page.screenshot({
+      path: path.join(logDir, `fail_${platform}_${timestamp}.png`),
+    });
     const html = await page.content();
-    await fs.writeFile(path.join(logDir, `fail_${platform}_${timestamp}.html`), html);
+    await fs.writeFile(
+      path.join(logDir, `fail_${platform}_${timestamp}.html`),
+      html,
+    );
     console.error(`[FORENSIC-SCRAPER] Failure snapshot saved for ${platform}`);
   } catch (err) {
-    console.error("[FORENSIC-SCRAPER] Failed to save failure snapshot:", err.message);
+    console.error(
+      "[FORENSIC-SCRAPER] Failed to save failure snapshot:",
+      err.message,
+    );
   }
 }
 
-// --- Scraper Core Logic ---
 
 class ProxyMatrix {
   constructor(proxies) {
-    this.proxies = proxies.map(p => ({ url: p, failures: 0, quarantinedUntil: 0 }));
+    this.proxies = proxies.map((p) => ({
+      url: p,
+      failures: 0,
+      quarantinedUntil: 0,
+    }));
     this.currentIndex = 0;
   }
 
@@ -217,24 +323,24 @@ let _requestCount = 0;
 
 async function getBrowser(proxyObj) {
   if (proxyObj && proxyObj.url) {
-    return await chromium.launch({
+    const browser = await chromium.launch({
       headless: true,
       proxy: { server: proxyObj.url },
-      args: ['--no-sandbox', '--disable-blink-features=AutomationControlled']
+      args: ["--no-sandbox", "--disable-blink-features=AutomationControlled"],
     });
+    return { browser, isPersistent: false };
   }
 
-  if (!_browser || _requestCount > 50) {
-    if (_browser) await _browser.close().catch(() => {});
+  if (!_browser) {
     _browser = await chromium.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-blink-features=AutomationControlled']
+      args: ["--no-sandbox", "--disable-blink-features=AutomationControlled"],
     });
     _requestCount = 0;
   }
-  
+
   _requestCount++;
-  return _browser;
+  return { browser: _browser, isPersistent: true };
 }
 
 export async function cleanup() {
@@ -245,8 +351,8 @@ export async function cleanup() {
 }
 
 function getAdapter(url, page) {
-  if (url.includes('amazon')) return new AmazonAdapter(page);
-  if (url.includes('flipkart')) return new FlipkartAdapter(page);
+  if (url.includes("amazon")) return new AmazonAdapter(page);
+  if (url.includes("flipkart")) return new FlipkartAdapter(page);
   return new GenericAdapter(page);
 }
 
@@ -254,37 +360,75 @@ export async function scrapeProduct(targetUrl, onProgress = () => {}) {
   const safeUrl = await validateScanUrl(targetUrl);
   if (!safeUrl.ok) return null;
 
-  const platform = targetUrl.includes('amazon') ? 'amazon' : targetUrl.includes('flipkart') ? 'flipkart' : 'generic';
+  const platform = targetUrl.includes("amazon")
+    ? "amazon"
+    : targetUrl.includes("flipkart")
+      ? "flipkart"
+      : "generic";
 
   return await withRetry(async (attempt) => {
     onProgress(`FORENSIC_CAPTURE_INIT (Attempt ${attempt + 1})`);
     const proxyObj = proxyMatrix.getNext();
-    const browser = await getBrowser(proxyObj);
-    const context = await browser.newContext({ ...devices['Desktop Chrome'], locale: 'en-IN' });
+    const { browser, isPersistent } = await getBrowser(proxyObj);
+    
+    // Add viewport jitter to evade canvas fingerprinting
+    const viewportWidth = 1366 + Math.floor(Math.random() * 500);
+    const viewportHeight = 768 + Math.floor(Math.random() * 300);
+    const randomUA = USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+
+    const context = await browser.newContext({
+      ...devices["Desktop Chrome"],
+      userAgent: randomUA,
+      viewport: { width: viewportWidth, height: viewportHeight },
+      locale: "en-US",
+      timezoneId: "America/New_York",
+      hasTouch: Math.random() > 0.5
+    });
     const page = await context.newPage();
 
     try {
-      await page.route('**/*.{png,jpg,jpeg,gif,svg,font,mp4,webm}', (route) => route.abort());
-      await page.goto(safeUrl.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.route("**/*.{png,jpg,jpeg,gif,svg,font,mp4,webm}", (route) =>
+        route.abort(),
+      );
+      await page.goto(safeUrl.url, {
+        waitUntil: "domcontentloaded",
+        timeout: 30000,
+      });
 
       const adapter = getAdapter(safeUrl.url, page);
-      const data = await adapter.scrape();
+      let data = await adapter.scrape();
 
-      if (!data.title) {
-        await logScraperFailure(page, platform);
-        SCRAPER_HEALTH[platform].fail++;
-        throw new Error("DATA_CAPTURE_EMPTY");
+      if (!data.title || !data.price) {
+        onProgress(`SELECTORS_FAILED: Initiating LLM Visual Parsing Fallback...`);
+        console.warn(`[SCRAPER] Selectors failed for ${platform}. Triggering LLM Fallback.`);
+        const html = await page.content();
+        const llmData = await extractProductDataLLM(html);
+        if (llmData && llmData.title) {
+          data = llmData;
+          onProgress(`LLM_FALLBACK_SUCCESS: Healed broken extraction.`);
+        } else {
+          await logScraperFailure(page, platform);
+          SCRAPER_HEALTH[platform].fail++;
+          throw new Error("DATA_CAPTURE_EMPTY");
+        }
       }
 
       SCRAPER_HEALTH[platform].success++;
       proxyMatrix.recordSuccess(proxyObj);
-      // Persist health every 10 successful operations
       if (++_healthOps % 10 === 0) persistScraperHealth();
+      
       await context.close();
-      return { ...data, hostname: new URL(safeUrl.url).hostname, timestamp: new Date() };
+      if (!isPersistent) await browser.close();
+
+      return {
+        ...data,
+        hostname: new URL(safeUrl.url).hostname,
+        timestamp: new Date(),
+      };
     } catch (err) {
       proxyMatrix.recordFailure(proxyObj);
       await context.close().catch(() => {});
+      if (browser && !isPersistent) await browser.close().catch(() => {});
       throw err;
     }
   });
@@ -297,7 +441,8 @@ async function withRetry(fn, maxRetries = 2) {
       return await fn(i);
     } catch (e) {
       lastError = e;
-      if (i < maxRetries - 1) await new Promise(r => setTimeout(r, 2000 * (i + 1)));
+      if (i < maxRetries - 1)
+        await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
     }
   }
   throw lastError;
