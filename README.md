@@ -1,9 +1,5 @@
 # AuthentiScan Forensic Intelligence Platform
 
-[![Forensic Intelligence CI](https://github.com/pintukumar916206-ops/AUTHENTICATION/actions/workflows/ci.yml/badge.svg)](https://github.com/pintukumar916206-ops/AUTHENTICATION/actions/workflows/ci.yml)
-![Lighthouse Performance](https://img.shields.io/badge/Lighthouse-98%2F100-brightgreen)
-![Security Matrix](https://img.shields.io/badge/Security-Hardened-blue)
-
 AuthentiScan is an enterprise-grade forensic intelligence platform designed to identify counterfeit listings, fraudulent storefronts, and anomalous pricing structures across global e-commerce ecosystems.
 
 ### Engineering Philosophy: Deterministic Verdicts over Generative Narrative
