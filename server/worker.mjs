@@ -20,7 +20,7 @@ if (cluster.isPrimary && process.env.CLUSTER_MODE === "true") {
     cluster.fork();
   }
 
-  cluster.on('exit', (worker, code, signal) => {
+  cluster.on('exit', (worker) => {
     console.log(`[CLUSTER] Worker ${worker.process.pid} died. Respawning...`);
     cluster.fork();
   });

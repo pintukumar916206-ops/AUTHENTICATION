@@ -9,7 +9,6 @@ export default function ExecutivePDFTemplate({ data }) {
     score,
     confidence,
     reasoning = [],
-    risk_signals = [],
     breakdown = [],
     product,
     timestamp,

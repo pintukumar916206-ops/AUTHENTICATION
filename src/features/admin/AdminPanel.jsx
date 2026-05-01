@@ -173,7 +173,7 @@ function FlaggedTable({ data }) {
       {selectedReport && (
         <InvestigationModal 
           report={selectedReport} 
-          isOpen={!!selectedReport} 
+          isOpen={Boolean(selectedReport)} 
           onClose={() => setSelectedReport(null)} 
         />
       )}
@@ -454,7 +454,7 @@ export default function AdminPanel() {
     queryFn: () => api.get("/api/admin/stats"),
   });
 
-  const { data: health, isLoading: healthLoading } = useQuery({
+  const { data: health } = useQuery({
     queryKey: ["adminHealth"],
     queryFn: () => api.get("/api/admin/health"),
     refetchInterval: 10000,

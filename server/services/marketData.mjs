@@ -37,7 +37,7 @@ export async function getRealTimeBaseline(title, category, fallbackRef) {
         };
       }
     }
-  } catch (err) {
+  } catch {
     console.warn("[MARKET-DATA] Failed to calculate dynamic baseline, using static fallback.");
   }
 
