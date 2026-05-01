@@ -59,6 +59,7 @@ tmp/
 temp/
 *.tmp
 scratch/
+failure_logs/
 
 # Legacy backup (intentionally excluded)
 legacy/
